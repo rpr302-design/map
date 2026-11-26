@@ -136,6 +136,24 @@
       border-left: 4px solid #198754; box-shadow: 0 2px 8px rgba(0,0,0,0.06);
     }
     .report-table th, .report-table td { font-size: 12px; padding: 7px; vertical-align: middle; }
+    /* मोबाइल स्क्रीन पर सेव बटन को हमेशा ऊपर और साफ़ दिखाने के लिए */
+#saveRouteBtn, .save-btn-container {
+  position: fixed !important;
+  bottom: 14px !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  width: 92% !important;
+  max-width: 420px !important;
+  z-index: 9999 !important;
+  display: block !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+}
+
+/* मैप की ऊँचाई मोबाइल एड्रेस बार के हिसाब से सेट करें */
+#map {
+  height: calc(100dvh - 140px) !important;
+  min-height: 400px;
+}
   </style>
 </head>
 <body>

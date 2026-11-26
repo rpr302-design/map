@@ -1,0 +1,1227 @@
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<style>
+  body { overflow: hidden !important; margin: 0 !important; padding: 0 !important; }
+  #narmada-app-wrapper {
+    position: fixed !important;
+    top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important;
+    width: 100vw !important; height: 100vh !important;
+    z-index: 99999 !important;
+    background: #e5e3df;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  }
+  #narmada-app-wrapper * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  #map { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
+
+  .top-search-bar {
+    position: absolute; top: 10px; left: 12px; right: 12px; z-index: 1000;
+    background: #fff; border-radius: 50px; padding: 5px 14px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2); display: flex; align-items: center; gap: 8px;
+  }
+  .top-search-bar input { border: none; outline: none; width: 100%; font-size: 13.5px; background: transparent; }
+  .top-search-bar button {
+    border: none; background: #e65100; color: white; border-radius: 50%;
+    width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+
+  .trip-banner {
+    position: absolute; top: 60px; left: 12px; right: 66px; z-index: 1000;
+    background: rgba(255, 255, 255, 0.97); border-radius: 14px; padding: 8px 12px;
+    box-shadow: 0 3px 12px rgba(0,0,0,0.18); display: flex; justify-content: space-between; align-items: center;
+    border-left: 4px solid #ff6f00;
+  }
+  .trip-banner.active { border-left-color: #198754; background: #f0fdf4; }
+  .trip-banner.main-pending { border-left-color: #d84315; background: #fff3e0; }
+
+  .fab-container {
+    position: absolute; right: 12px; top: 60px; z-index: 1000;
+    display: flex; flex-direction: column; gap: 7px;
+  }
+  .fab-btn {
+    width: 40px; height: 40px; border-radius: 50%; background: #fff; border: none;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.25); display: flex; align-items: center; justify-content: center; font-size: 16px; cursor: pointer;
+  }
+  .fab-btn.active-layer { background: #1a73e8; color: #fff; }
+  .fab-btn.active-history { background: #6f42c1; color: #fff; }
+
+  .bottom-sheet {
+    position: absolute; bottom: 0; left: 0; right: 0; z-index: 1000;
+    background: #ffffff; border-top-left-radius: 22px; border-top-right-radius: 22px;
+    padding: 10px 16px 14px 16px; box-shadow: 0 -5px 25px rgba(0,0,0,0.22);
+  }
+  .coords-pill { font-size: 11px; background: #e8f5e9; color: #1b5e20; padding: 3px 9px; border-radius: 20px; font-weight: 600; }
+
+  .routes-summary-strip {
+    background: #eef6ff; border: 1px solid #b6d4fe; color: #084298;
+    border-radius: 10px; padding: 5px 10px; margin-top: 6px;
+    font-size: 11.5px; font-weight: 700; display: none;
+    justify-content: space-between; align-items: center;
+  }
+
+  .tag-chips-bar, .route-options-bar {
+    display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; margin-top: 6px; scrollbar-width: none;
+  }
+  .tag-chips-bar::-webkit-scrollbar, .route-options-bar::-webkit-scrollbar { display: none; }
+
+  .tag-chip {
+    border: 1px solid #ffe0b2; background: #fff8e1; color: #bf360c; border-radius: 16px;
+    padding: 3px 10px; font-size: 11.5px; font-weight: 600; white-space: nowrap; cursor: pointer;
+  }
+  .route-chip {
+    border: 1.5px solid #ced4da; background: #f8f9fa; border-radius: 18px;
+    padding: 4px 11px; font-size: 11.5px; font-weight: 600; white-space: nowrap; cursor: pointer;
+  }
+  .route-chip.selected {
+    border-color: #198754; background: #198754; color: #ffffff;
+    box-shadow: 0 2px 6px rgba(25, 135, 84, 0.3);
+  }
+
+  .input-group-custom {
+    background: #f8f9fa; border: 1.5px solid #e0e0e0; border-radius: 10px;
+    padding: 5px 10px; margin-top: 6px; display: flex; align-items: center; gap: 8px;
+  }
+  .input-group-custom input { border: none; background: transparent; outline: none; width: 100%; font-size: 13px; }
+  .leaflet-top.leaflet-left { top: 122px; }
+
+  .modal { z-index: 100005 !important; }
+  .modal-backdrop { z-index: 100004 !important; }
+  .swal2-container { z-index: 100010 !important; }
+
+  .dash-hero-header {
+    background: linear-gradient(135deg, #ff6f00, #d84315);
+    color: white; border-radius: 16px; padding: 14px; margin-bottom: 12px;
+  }
+  .dash-loc-box {
+    background: rgba(255, 255, 255, 0.96); color: #212529;
+    border-radius: 12px; padding: 10px 12px; margin-top: 10px;
+  }
+  .metric-card {
+    background: #ffffff; border-radius: 14px; padding: 10px 8px;
+    border: 1px solid #e9ecef; text-align: center;
+  }
+  .stop-timeline-card {
+    background: #ffffff; border-radius: 12px; padding: 10px 12px; margin-bottom: 8px;
+    border-left: 4px solid #198754; box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  }
+  .report-table th, .report-table td { font-size: 12px; padding: 7px; vertical-align: middle; }
+</style>
+
+<div id="narmada-app-wrapper">
+  <!-- 1. सर्च बार -->
+  <div class="top-search-bar">
+    <i class="bi bi-bicycle text-success fs-4"></i>
+    <input type="text" id="searchQuery" placeholder="स्थान खोजें - घाट, आश्रम, गली, मंदिर" onkeypress="if(event.key==='Enter') searchPlace()" />
+    <button onclick="searchPlace()"><i class="bi bi-search"></i></button>
+  </div>
+
+  <!-- 2. यात्रा नियंत्रण पट्टी -->
+  <div id="tripBanner" class="trip-banner">
+    <div style="max-width: 64%;">
+      <div id="tripStatusText" class="fw-bold text-secondary" style="font-size: 12px;">शीट से स्थिति जांची जा रही है...</div>
+      <div id="tripStatsText" class="text-muted text-truncate" style="font-size: 11px;">कृपया प्रतीक्षा करें</div>
+    </div>
+    <button id="tripToggleBtn" class="btn btn-secondary btn-sm fw-bold rounded-pill px-3" onclick="handleTripButton()" disabled>...</button>
+  </div>
+
+  <!-- 3. फ्लोटिंग एक्शन बटन (GPS, मैप व्यू, पिछले दिनों की यात्रा लाइन, डैशबोर्ड, Google Maps) -->
+  <div class="fab-container">
+    <button class="fab-btn" onclick="locateUser()" title="वर्तमान GPS लोकेशन"><i class="bi bi-crosshair text-primary"></i></button>
+    <button class="fab-btn" id="layerBtn" onclick="toggleLayer()" title="गली मैप / सैटेलाइट बदलें"><i class="bi bi-layers-fill"></i></button>
+    <button class="fab-btn active-history" id="historyBtn" onclick="togglePastTrips()" title="पिछले दिनों की यात्रा लाइन दिखाएं/छिपाएं"><i class="bi bi-signpost-2"></i></button>
+    <button class="fab-btn" onclick="openReportModal()" title="यात्रा डैशबोर्ड"><i class="bi bi-bar-chart-line-fill text-warning"></i></button>
+    <button class="fab-btn" onclick="openInGoogleMapsApp()" title="Google Maps ऐप"><i class="bi bi-map-fill text-danger"></i></button>
+  </div>
+
+  <!-- 4. नक्शा -->
+  <div id="map"></div>
+
+  <!-- 5. बॉटम शीट -->
+  <div class="bottom-sheet">
+    <div class="d-flex justify-content-between align-items-center">
+      <span class="fw-bold text-dark" style="font-size: 13px;"><i class="bi bi-bezier2 text-success me-1"></i> सड़क व गली मार्ग ग्राफ</span>
+      <span id="coordsText" class="coords-pill">नक्शे पर टैप करें</span>
+    </div>
+
+    <!-- कुल उपलब्ध मार्गों की संख्या व ग्राफ स्थिति -->
+    <div id="routesCountStrip" class="routes-summary-strip">
+      <span id="routesCountLabel">🛣️ कुल 0 मार्ग उपलब्ध हैं</span>
+      <span id="routesAccessBadge" class="badge bg-success">सड़क ग्राफ</span>
+    </div>
+
+    <!-- सभी मार्गों के विकल्प चिप्स -->
+    <div id="routeOptionsContainer" class="route-options-bar" style="display:none;"></div>
+
+    <!-- त्वरित स्थान श्रेणी चिप्स -->
+    <div class="tag-chips-bar">
+      <span class="tag-chip" onclick="applyTag('आश्रम - ')">🛕 आश्रम</span>
+      <span class="tag-chip" onclick="applyTag('होटल व धर्मशाला - ')">🏨 होटल व धर्मशाला</span>
+      <span class="tag-chip" onclick="applyTag('भोजन व भंडारा - ')">🍲 भोजन व भंडारा</span>
+      <span class="tag-chip" onclick="applyTag('नर्मदा घाट व मंदिर - ')">🌊 घाट व मंदिर</span>
+      <span class="tag-chip" onclick="applyTag('विश्राम स्थल - ')">🚲 विश्राम स्थल</span>
+    </div>
+
+    <div class="input-group-custom">
+      <i class="bi bi-building-fill text-warning"></i>
+      <input type="text" id="customTitle" placeholder="कस्टम नाम लिखें - नर्मदा आश्रम, होटल, गली" />
+      <i class="bi bi-x-circle-fill text-muted" style="cursor:pointer;" onclick="document.getElementById('customTitle').value=''"></i>
+    </div>
+
+    <div class="input-group-custom mb-2">
+      <i class="bi bi-geo-alt text-muted"></i>
+      <input type="text" id="placeName" placeholder="नक्शे पर क्लिक करते ही पता दिखेगा..." />
+      <i class="bi bi-x-circle-fill text-muted" style="cursor:pointer;" onclick="document.getElementById('placeName').value=''"></i>
+    </div>
+
+    <div class="d-flex gap-2">
+      <button id="saveBtn" class="btn btn-success w-100 fw-bold rounded-3 py-2" onclick="saveCustomPoint()" disabled>
+        🚲 चुना गया मार्ग व पड़ाव सेव करें
+      </button>
+      <button class="btn btn-dark fw-bold rounded-3 px-3" onclick="openReportModal()">
+        📊 डैशबोर्ड
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- 6. यात्रा रिपोर्ट डैशबोर्ड मॉडल -->
+<div class="modal fade" id="reportModal" tabindex="-1">
+  <div class="modal-dialog modal-fullscreen-sm-down modal-lg modal-dialog-scrollable">
+    <div class="modal-content bg-light">
+      <div class="modal-header border-0 py-2" style="background: #d84315; color: white;">
+        <h6 class="modal-title fw-bold"><i class="bi bi-bicycle me-1"></i> नर्मदा परिक्रमा साइकिल यात्रा डैशबोर्ड</h6>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-3">
+        
+        <div class="dash-hero-header">
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <div class="small opacity-75">मुख्य साइकिल यात्रा अभियान</div>
+              <h6 id="dashTripTitle" class="fw-bold mb-0">🚩 नर्मदा परिक्रमा यात्रा - दिनांक 22-09-2026</h6>
+            </div>
+            <span id="todayTripBadge" class="badge bg-light text-dark fw-bold px-2 py-1">जांच जारी...</span>
+          </div>
+
+          <div class="dash-loc-box">
+            <div class="d-flex align-items-start gap-2 mb-2">
+              <span class="badge bg-success mt-1">प्रारंभ</span>
+              <div>
+                <div class="text-muted" style="font-size: 11px;">प्रारंभ स्थान</div>
+                <div id="todayStartLoc" class="fw-bold text-dark" style="font-size: 13px;">लोड हो रहा है...</div>
+              </div>
+            </div>
+            <div class="d-flex align-items-start gap-2 border-top pt-2">
+              <span class="badge bg-danger mt-1">समाप्ति</span>
+              <div>
+                <div class="text-muted" style="font-size: 11px;">वर्तमान या समाप्ति स्थान</div>
+                <div id="todayEndLoc" class="fw-bold text-dark" style="font-size: 13px;">लोड हो रहा है...</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="row g-2 mb-3">
+          <div class="col-4">
+            <div class="metric-card">
+              <div class="text-success fs-5"><i class="bi bi-bicycle"></i></div>
+              <div id="repTotalKm" class="fw-bold text-dark fs-6">0.00 km</div>
+              <div class="text-muted" style="font-size: 11px;">कुल साइकिल दूरी</div>
+            </div>
+          </div>
+          <div class="col-4">
+            <div class="metric-card">
+              <div class="text-primary fs-5"><i class="bi bi-geo-fill"></i></div>
+              <div id="repTotalStops" class="fw-bold text-dark fs-6">0</div>
+              <div class="text-muted" style="font-size: 11px;">कुल पड़ाव</div>
+            </div>
+          </div>
+          <div class="col-4">
+            <div class="metric-card">
+              <div class="text-warning fs-5"><i class="bi bi-calendar-check-fill"></i></div>
+              <div id="repTripsCount" class="fw-bold text-dark fs-6">0</div>
+              <div class="text-muted" style="font-size: 11px;">यात्रा दिवस</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white p-2 rounded-3 shadow-sm mb-3">
+          <div class="btn-group w-100 mb-2" role="group">
+            <button type="button" class="btn btn-outline-primary btn-sm" onclick="filterReport('hour', this)">प्रत्येक घंटा</button>
+            <button type="button" class="btn btn-outline-primary btn-sm active" onclick="filterReport('day', this)">दैनिक</button>
+            <button type="button" class="btn btn-outline-primary btn-sm" onclick="filterReport('week', this)">साप्ताहिक</button>
+            <button type="button" class="btn btn-outline-primary btn-sm" onclick="filterReport('month', this)">मासिक</button>
+          </div>
+
+          <div class="table-responsive" style="max-height: 150px;">
+            <table class="table table-hover table-sm report-table mb-0">
+              <thead class="table-light">
+                <tr><th>अवधि या समय</th><th>साइकिल दूरी</th><th>पड़ाव</th></tr>
+              </thead>
+              <tbody id="summaryTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <h6 class="fw-bold small text-secondary mb-2"><i class="bi bi-list-stars text-success me-1"></i> सेव किए गए आश्रम, होटल व पड़ाव सूची:</h6>
+        <div id="allStopsList"></div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+// <![CDATA[
+  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzPyr6PXSM44nbGeqlC9xc6HgJOErss5wvwO59XJxjA8mNvUocs-uHrLyc0mCkxnGzr/exec";
+
+  function H(str) {
+    if (str === null || str === undefined) return "";
+    let s = String(str);
+    while (s.indexOf("&#") !== -1 || s.indexOf("&amp;") !== -1) {
+      const txt = document.createElement("textarea");
+      txt.innerHTML = s;
+      if (txt.value === s) break;
+      s = txt.value;
+    }
+    return s;
+  }
+
+  const TRIP_TITLE = H("नर्मदा परिक्रमा यात्रा - दिनांक 22-09-2026");
+
+  function sanitizeBloggerDOM() {
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null, false);
+    let node;
+    while ((node = walker.nextNode())) {
+      if (node.nodeValue && node.nodeValue.indexOf("&#") !== -1) {
+        node.nodeValue = H(node.nodeValue);
+      }
+    }
+    document.querySelectorAll('input[placeholder]').forEach(el => {
+      el.placeholder = H(el.placeholder);
+    });
+  }
+
+  let selectedLat = 23.6355, selectedLng = 79.0736, marker = null, mapMode = 0;
+  const map = L.map('map').setView([selectedLat, selectedLng], 16);
+
+  const streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 20, attribution: '© OpenStreetMap'
+  }).addTo(map);
+
+  const cycleLayer = L.tileLayer('https://{s}.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png', {
+    maxZoom: 20, attribution: '© CyclOSM'
+  });
+
+  const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 });
+  const labelsLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 });
+
+  let isMainTripStarted = false;
+  let tripState = null;
+  let lastCompletedPoint = null;
+  let showPastTripsFlag = true;
+
+  // 3 लेयर ग्रुप्स: 1) पिछले दिनों की यात्राएं, 2) आज की सक्रिय यात्रा, 3) नए क्लिक पर संभावित रास्ते
+  let pastTripsGroup = L.layerGroup().addTo(map);
+  let savedRouteGroup = L.layerGroup().addTo(map);
+  let previewRoutesGroup = L.layerGroup().addTo(map);
+
+  let candidateRoutes = [];
+  let selectedCandidateIndex = 0;
+
+  window.addEventListener("load", function() {
+    sanitizeBloggerDOM();
+    setTimeout(() => map.invalidateSize(), 400);
+    syncStateWithGoogleSheet();
+  });
+
+  // Google Polyline6 / Polyline5 डिकोडर (Valhalla के सटीक घुमावदार रास्ते को नक्शे पर खींचने के लिए)
+  function decodePolyline(str, precision) {
+    let index = 0, lat = 0, lng = 0, coordinates = [], shift = 0, result = 0, byte = null, latitude_change, longitude_change;
+    const factor = Math.pow(10, precision || 6);
+    while (index < str.length) {
+      byte = null; shift = 0; result = 0;
+      do {
+        byte = str.charCodeAt(index++) - 63;
+        result |= (byte & 0x1f) << shift;
+        shift += 5;
+      } while (byte >= 0x20);
+      latitude_change = ((result & 1) ? ~(result >> 1) : (result >> 1));
+      shift = result = 0;
+      do {
+        byte = str.charCodeAt(index++) - 63;
+        result |= (byte & 0x1f) << shift;
+        shift += 5;
+      } while (byte >= 0x20);
+      longitude_change = ((result & 1) ? ~(result >> 1) : (result >> 1));
+      lat += latitude_change;
+      lng += longitude_change;
+      coordinates.push([lat / factor, lng / factor]);
+    }
+    return coordinates;
+  }
+
+  // नक्शे पर सेव करने के लिए निर्देशांक को हल्का (Simplify) करना ताकि Google Sheet में आसानी से सेव हो
+  function compressCoordsForSheet(coords) {
+    if (!coords || coords.length === 0) return "";
+    // अधिकतम 120 बिंदु रखें ताकि शीट का सेल ओवरफ्लो न हो
+    const step = Math.max(1, Math.floor(coords.length / 120));
+    let sampled = [];
+    for (let i = 0; i < coords.length; i += step) {
+      sampled.push([Number(coords[i][0].toFixed(5)), Number(coords[i][1].toFixed(5))]);
+    }
+    const last = coords[coords.length - 1];
+    sampled.push([Number(last[0].toFixed(5)), Number(last[1].toFixed(5))]);
+    return JSON.stringify(sampled);
+  }
+
+  function syncStateWithGoogleSheet() {
+    fetch(SCRIPT_URL + "?action=getReport&t=" + Date.now())
+      .then(r => r.json())
+      .then(res => {
+        const locs = res.locations || [];
+        const trips = res.trips || [];
+
+        if (locs.length === 0 && trips.length === 0) {
+          localStorage.removeItem('custom_trip_state');
+          localStorage.removeItem('last_completed_point');
+          isMainTripStarted = false;
+          tripState = null;
+          lastCompletedPoint = null;
+          pastTripsGroup.clearLayers();
+          savedRouteGroup.clearLayers();
+          previewRoutesGroup.clearLayers();
+          if (marker) { map.removeLayer(marker); marker = null; }
+          document.getElementById('coordsText').innerText = H("नक्शे पर टैप करें");
+          document.getElementById('placeName').value = "";
+          document.getElementById('customTitle').value = "";
+          document.getElementById('saveBtn').disabled = true;
+        } else {
+          isMainTripStarted = true;
+          tripState = JSON.parse(localStorage.getItem('custom_trip_state') || 'null');
+          lastCompletedPoint = res.lastEndPoint || JSON.parse(localStorage.getItem('last_completed_point') || 'null');
+
+          // पिछले दिनों की सभी यात्राओं की लाइन नक्शे पर बनाएं
+          drawPastTripsFromSheet(locs, tripState ? tripState.tripId : null);
+
+          if (tripState && tripState.active) {
+            redrawSavedTripRoute();
+          } else if (lastCompletedPoint) {
+            selectedLat = lastCompletedPoint.lat;
+            selectedLng = lastCompletedPoint.lng;
+            map.setView([selectedLat, selectedLng], 15);
+            setPinOnly(selectedLat, selectedLng, H(lastCompletedPoint.placeName), H(lastCompletedPoint.customTitle));
+          }
+        }
+        updateTripUI();
+      })
+      .catch(() => {
+        tripState = JSON.parse(localStorage.getItem('custom_trip_state') || 'null');
+        lastCompletedPoint = JSON.parse(localStorage.getItem('last_completed_point') || 'null');
+        isMainTripStarted = !!(tripState || lastCompletedPoint);
+        if (tripState && tripState.active) redrawSavedTripRoute();
+        updateTripUI();
+      });
+  }
+
+  // पिछले दिनों की यात्राओं को अलग-अलग रंगों में नक्शे पर दिखाना
+  const PAST_DAY_COLORS = ['#6f42c1', '#d63384', '#fd7e14', '#20c997', '#6610f2'];
+  function drawPastTripsFromSheet(locs, activeTripId) {
+    pastTripsGroup.clearLayers();
+    if (!showPastTripsFlag || !locs || locs.length === 0) return;
+
+    // यात्रा ID के अनुसार समूह बनाएं
+    let tripsMap = {};
+    locs.forEach(row => {
+      const tId = row[8] || "OLD-TRIP";
+      if (activeTripId && tId === activeTripId) return; // आज की सक्रिय यात्रा को अलग लेयर में दिखाएंगे
+      if (!tripsMap[tId]) tripsMap[tId] = [];
+      tripsMap[tId].push(row);
+    });
+
+    let allPastBounds = [];
+    const tripKeys = Object.keys(tripsMap);
+
+    tripKeys.forEach((tId, tIdx) => {
+      const rows = tripsMap[tId];
+      const dayColor = PAST_DAY_COLORS[tIdx % PAST_DAY_COLORS.length];
+
+      rows.forEach((row, rIdx) => {
+        const lat = parseFloat(row[4]);
+        const lng = parseFloat(row[5]);
+        const customName = H(row[9] || row[1]);
+        const timeStr = H(row[0]);
+        const distKm = parseFloat(row[3]) || 0;
+        const geoJsonStr = row[10]; // कॉलम K में सेव घुमावदार रास्ता
+
+        let segmentDrawn = false;
+        if (geoJsonStr && geoJsonStr.startsWith("[")) {
+          try {
+            const parsedCoords = JSON.parse(geoJsonStr);
+            if (parsedCoords.length > 1) {
+              L.polyline(parsedCoords, { color: dayColor, weight: 4.5, opacity: 0.8 }).addTo(pastTripsGroup);
+              allPastBounds.push(...parsedCoords);
+              segmentDrawn = true;
+            }
+          } catch (e) {}
+        }
+
+        // यदि पुराने डेटा में Route Geometry सेव नहीं थी, तो पिछले बिंदु से जोड़ें
+        if (!segmentDrawn && rIdx > 0) {
+          const prevLat = parseFloat(rows[rIdx - 1][4]);
+          const prevLng = parseFloat(rows[rIdx - 1][5]);
+          if (!isNaN(prevLat) && !isNaN(lat)) {
+            L.polyline([[prevLat, prevLng], [lat, lng]], { color: dayColor, weight: 4, opacity: 0.75, dashArray: '6, 6' }).addTo(pastTripsGroup);
+          }
+        }
+
+        if (!isNaN(lat) && !isNaN(lng)) {
+          allPastBounds.push([lat, lng]);
+          const dot = L.circleMarker([lat, lng], {
+            radius: 5, fillColor: dayColor, color: '#fff', weight: 1.5, fillOpacity: 0.95
+          }).addTo(pastTripsGroup);
+          dot.bindPopup(`<b>📅 पिछली यात्रा (${tId})</b><br><b>${customName}</b><br><small>${timeStr}</small><br>दूरी: ${distKm.toFixed(2)} km`);
+        }
+      });
+    });
+
+    if ((!tripState || !tripState.active) && allPastBounds.length > 1) {
+      map.fitBounds(L.latLngBounds(allPastBounds), { padding: [45, 45], maxZoom: 15 });
+    }
+  }
+
+  function togglePastTrips() {
+    showPastTripsFlag = !showPastTripsFlag;
+    const btn = document.getElementById('historyBtn');
+    if (showPastTripsFlag) {
+      btn.classList.add('active-history');
+      syncStateWithGoogleSheet();
+      Swal.fire({ toast: true, position: 'top', icon: 'info', title: H('🛣️ पिछले दिनों की यात्रा लाइन दिखाई गई'), showConfirmButton: false, timer: 1300 });
+    } else {
+      btn.classList.remove('active-history');
+      pastTripsGroup.clearLayers();
+      Swal.fire({ toast: true, position: 'top', icon: 'info', title: H('👁️ पिछले दिनों की लाइन छिपाई गई'), showConfirmButton: false, timer: 1300 });
+    }
+  }
+
+  map.on('click', e => selectPoint(e.latlng.lat, e.latlng.lng));
+
+  function applyTag(tagText) {
+    const box = document.getElementById('customTitle');
+    box.value = H(tagText) + box.value.trim();
+    box.focus();
+  }
+
+  function setPinOnly(lat, lng, mapAddr, customTitle) {
+    selectedLat = lat; selectedLng = lng;
+    if (marker) marker.setLatLng([lat, lng]);
+    else {
+      marker = L.marker([lat, lng], { draggable: true }).addTo(map);
+      marker.on('dragend', ev => selectPoint(ev.target.getLatLng().lat, ev.target.getLatLng().lng));
+    }
+    document.getElementById('coordsText').innerText = lat.toFixed(5) + ", " + lng.toFixed(5);
+    document.getElementById('placeName').value = H(mapAddr);
+    if (customTitle !== undefined) document.getElementById('customTitle').value = H(customTitle);
+    document.getElementById('saveBtn').disabled = false;
+  }
+
+  function selectPoint(lat, lng) {
+    setPinOnly(lat, lng, H("स्थान का पता व सड़क/गली ग्राफ खोजा जा रहा है..."), "");
+    
+    fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&zoom=18&accept-language=hi`)
+      .then(r => r.json())
+      .then(d => {
+        document.getElementById('placeName').value = (d && d.display_name) ? (d.name ? d.name + ", " + d.display_name : d.display_name) : "";
+      })
+      .catch(() => { document.getElementById('placeName').value = ""; });
+
+    if (tripState && tripState.active && tripState.points.length > 0) {
+      const prev = tripState.points[tripState.points.length - 1];
+      buildCurvedRoadGraph(prev.lat, prev.lng, lat, lng);
+    } else {
+      previewRoutesGroup.clearLayers();
+      document.getElementById('routeOptionsContainer').style.display = 'none';
+      document.getElementById('routesCountStrip').style.display = 'none';
+    }
+  }
+
+  function connectExactPins(rawCoords, startLat, startLng, endLat, endLng) {
+    let coords = rawCoords.slice();
+    let extraMeters = 0;
+
+    if (coords.length === 0) {
+      return { coords: [[startLat, startLng], [endLat, endLng]], extraKm: getDistanceMeters(startLat, startLng, endLat, endLng) / 1000 };
+    }
+
+    const firstPt = coords[0];
+    const startGap = getDistanceMeters(startLat, startLng, firstPt[0], firstPt[1]);
+    if (startGap > 1.5) {
+      coords.unshift([startLat, startLng]);
+      extraMeters += startGap;
+    }
+
+    const lastPt = coords[coords.length - 1];
+    const endGap = getDistanceMeters(lastPt[0], lastPt[1], endLat, endLng);
+    if (endGap > 1.5) {
+      coords.push([endLat, endLng]);
+      extraMeters += endGap;
+    }
+
+    return { coords: coords, extraKm: extraMeters / 1000 };
+  }
+
+  // मुख्य ग्राफ इंजन: Valhalla (Pedestrian/Bicycle Graph) + OSRM Main (तीनों उच्च-उपलब्धता सर्वर)
+  async function buildCurvedRoadGraph(startLat, startLng, endLat, endLng) {
+    previewRoutesGroup.clearLayers();
+    candidateRoutes = [];
+    selectedCandidateIndex = 0;
+
+    const strip = document.getElementById('routesCountStrip');
+    const countLabel = document.getElementById('routesCountLabel');
+    const accessBadge = document.getElementById('routesAccessBadge');
+    const container = document.getElementById('routeOptionsContainer');
+
+    strip.style.display = 'flex';
+    countLabel.innerText = H("🔄 सड़क व पगडंडी का घुमावदार ग्राफ बन रहा है...");
+    accessBadge.className = "badge bg-secondary";
+    accessBadge.innerText = H("लोडिंग");
+    container.style.display = 'none';
+
+    let foundRoutes = [];
+
+    // इंजन 1: FOSSGIS Valhalla Bicycle & Pedestrian Graph (सबसे विश्वसनीय घुमावदार सड़क व गली ग्राफ)
+    const fetchValhalla = async (costingMode, label) => {
+      try {
+        const reqBody = {
+          locations: [{ lat: startLat, lon: startLng }, { lat: endLat, lon: endLng }],
+          costing: costingMode,
+          alternates: 2,
+          units: "kilometers"
+        };
+        const resp = await fetch("https://valhalla1.openstreetmap.de/route", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(reqBody)
+        });
+        const data = await resp.json();
+        if (data && data.trip && data.trip.legs) {
+          // मुख्य ट्रिप
+          const shape1 = decodePolyline(data.trip.legs[0].shape, 6);
+          const conn1 = connectExactPins(shape1, startLat, startLng, endLat, endLng);
+          foundRoutes.push({
+            coords: conn1.coords,
+            km: data.trip.summary.length + conn1.extraKm,
+            mins: Math.max(1, Math.round(((data.trip.summary.length + conn1.extraKm) / 14) * 60)),
+            type: label,
+            isGraph: true
+          });
+          // वैकल्पिक रास्ते (Alternates)
+          if (data.alternates) {
+            data.alternates.forEach(alt => {
+              if (alt.trip && alt.trip.legs) {
+                const altShape = decodePolyline(alt.trip.legs[0].shape, 6);
+                const connAlt = connectExactPins(altShape, startLat, startLng, endLat, endLng);
+                foundRoutes.push({
+                  coords: connAlt.coords,
+                  km: alt.trip.summary.length + connAlt.extraKm,
+                  mins: Math.max(1, Math.round(((alt.trip.summary.length + connAlt.extraKm) / 14) * 60)),
+                  type: H("वैकल्पिक मार्ग"),
+                  isGraph: true
+                });
+              }
+            });
+          }
+        }
+      } catch (e) {}
+    };
+
+    // इंजन 2: OSRM Official Main Server (उच्च गति वाला बैकअप ग्राफ इंजन)
+    const fetchOsrmMain = async () => {
+      try {
+        const url = `https://router.project-osrm.org/route/v1/driving/${startLng},${startLat};${endLng},${endLat}?overview=full&geometries=geojson&alternatives=3`;
+        const data = await fetch(url).then(r => r.json());
+        if (data && data.code === 'Ok' && data.routes) {
+          data.routes.forEach(rt => {
+            const raw = rt.geometry.coordinates.map(c => [c[1], c[0]]);
+            const conn = connectExactPins(raw, startLat, startLng, endLat, endLng);
+            foundRoutes.push({
+              coords: conn.coords,
+              km: (rt.distance / 1000) + conn.extraKm,
+              mins: Math.max(1, Math.round((((rt.distance / 1000) + conn.extraKm) / 15) * 60)),
+              type: H("सड़क मार्ग"),
+              isGraph: true
+            });
+          });
+        }
+      } catch (e) {}
+    };
+
+    // तीनों को समानांतर (Parallel) चलाएं ताकि 1.5 सेकंड के अंदर ग्राफ मिल जाए
+    await Promise.allSettled([
+      fetchValhalla("bicycle", H("साइकिल व गली मार्ग")),
+      fetchValhalla("pedestrian", H("पैदल पगडंडी")),
+      fetchOsrmMain()
+    ]);
+
+    // डुप्लीकेट रास्तों को फ़िल्टर करें (ताकि अलग-अलग रास्ते ही दिखें)
+    let uniqueRoutes = [];
+    foundRoutes.sort((a, b) => a.km - b.km);
+
+    foundRoutes.forEach(rt => {
+      if (rt.coords.length <= 2) return; // सीधी 2-बिंदु रेखा को अनदेखा करें यदि असली ग्राफ उपलब्ध है
+      const midIdx = Math.floor(rt.coords.length / 2);
+      const midPt = rt.coords[midIdx];
+      const isDup = uniqueRoutes.some(ex => {
+        const exMid = ex.coords[Math.floor(ex.coords.length / 2)];
+        const midDist = getDistanceMeters(midPt[0], midPt[1], exMid[0], exMid[1]);
+        return Math.abs(ex.km - rt.km) < 0.05 && midDist < 50;
+      });
+      if (!isDup) uniqueRoutes.push(rt);
+    });
+
+    if (uniqueRoutes.length > 0) {
+      candidateRoutes = uniqueRoutes.slice(0, 5).map((rt, idx) => ({ ...rt, index: idx }));
+      renderGraphRoutes();
+    } else {
+      const directKm = getDistanceMeters(startLat, startLng, endLat, endLng) / 1000;
+      candidateRoutes = [{
+        coords: [[startLat, startLng], [endLat, endLng]],
+        km: directKm,
+        mins: Math.max(1, Math.round((directKm / 12) * 60)),
+        type: H("सीधा संपर्क"),
+        index: 0,
+        isGraph: false
+      }];
+      renderGraphRoutes();
+    }
+  }
+
+  const ROUTE_COLORS = ['#198754', '#0d6efd', '#fd7e14', '#6f42c1', '#d63384'];
+
+  function renderGraphRoutes() {
+    previewRoutesGroup.clearLayers();
+    const strip = document.getElementById('routesCountStrip');
+    const countLabel = document.getElementById('routesCountLabel');
+    const accessBadge = document.getElementById('routesAccessBadge');
+    const container = document.getElementById('routeOptionsContainer');
+
+    const totalRoutes = candidateRoutes.length;
+    const isRealGraph = candidateRoutes[0].isGraph;
+
+    strip.style.display = 'flex';
+    countLabel.innerText = isRealGraph 
+      ? H(`🛣️ इस स्थान तक पहुँचने के कुल ${totalRoutes} मार्ग उपलब्ध हैं`)
+      : H(`⚠️ इस क्षेत्र में सड़क डेटा उपलब्ध नहीं - सीधा मार्ग`);
+    
+    accessBadge.className = isRealGraph ? "badge bg-success" : "badge bg-warning text-dark";
+    accessBadge.innerText = isRealGraph ? H("✅ सड़क/गली ग्राफ") : H("सीधी दूरी");
+
+    container.style.display = 'flex';
+    container.innerHTML = '';
+
+    candidateRoutes.forEach((rt, idx) => {
+      const isSel = idx === selectedCandidateIndex;
+      const lineColor = ROUTE_COLORS[idx % ROUTE_COLORS.length];
+
+      if (!isSel) {
+        const altLine = L.polyline(rt.coords, {
+          color: lineColor, weight: 5, opacity: 0.6, dashArray: '7, 7'
+        }).addTo(previewRoutesGroup);
+        altLine.bindTooltip(H(`मार्ग ${idx + 1}: ${rt.km.toFixed(2)} km`), { sticky: true });
+        altLine.on('click', () => { selectedCandidateIndex = idx; renderGraphRoutes(); });
+      }
+
+      const chip = document.createElement('div');
+      chip.className = `route-chip ${isSel ? 'selected' : ''}`;
+      const badgeTxt = idx === 0 ? H("⭐ सबसे छोटा") : rt.type;
+      chip.innerHTML = H(`मार्ग ${idx + 1} (${badgeTxt}): <b>${rt.km.toFixed(2)} km</b> • ${rt.mins} मि.`);
+      chip.onclick = () => { selectedCandidateIndex = idx; renderGraphRoutes(); };
+      container.appendChild(chip);
+    });
+
+    const activeRt = candidateRoutes[selectedCandidateIndex];
+    if (activeRt) {
+      L.polyline(activeRt.coords, { color: '#198754', weight: 7, opacity: 0.95 }).addTo(previewRoutesGroup);
+    }
+  }
+
+  function getDistanceMeters(lat1, lon1, lat2, lon2) {
+    const R = 6371000;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat/2)**2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2)**2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  }
+
+  function redrawSavedTripRoute() {
+    savedRouteGroup.clearLayers();
+    if (!tripState || !tripState.points || tripState.points.length === 0) return;
+
+    let allBounds = [];
+    tripState.points.forEach((p, idx) => {
+      if (p.routeCoords && p.routeCoords.length > 1) {
+        L.polyline(p.routeCoords, { color: '#0d6efd', weight: 5.5, opacity: 0.95 }).addTo(savedRouteGroup);
+        allBounds.push(...p.routeCoords);
+      } else {
+        allBounds.push([p.lat, p.lng]);
+      }
+
+      const isFirst = idx === 0;
+      const circle = L.circleMarker([p.lat, p.lng], {
+        radius: isFirst ? 8 : 6,
+        fillColor: isFirst ? '#198754' : '#e65100',
+        color: '#fff', weight: 2, fillOpacity: 1
+      }).addTo(savedRouteGroup);
+      circle.bindPopup(`<b>${idx + 1}. ${H(p.customTitle || p.name)}</b><br><small>${H(p.name)}</small><br>${H("दूरी:")} ${p.segKm.toFixed(2)} km`);
+    });
+
+    if (allBounds.length > 1) {
+      map.fitBounds(L.latLngBounds(allBounds), { padding: [50, 50], maxZoom: 17 });
+    }
+  }
+
+  function getCurrentDisplayNames() {
+    const mapAddr = H(document.getElementById('placeName').value.trim());
+    const cleanAddr = (mapAddr && mapAddr.indexOf("खोजा जा रहा है") === -1) ? mapAddr : `${H("स्थान")} ${selectedLat.toFixed(4)}, ${selectedLng.toFixed(4)}`;
+    const customRaw = H(document.getElementById('customTitle').value.trim());
+    const finalTitle = customRaw !== "" ? customRaw : cleanAddr;
+    return { mapAddr: cleanAddr, customTitle: finalTitle };
+  }
+
+  function handleTripButton() {
+    if (!marker) {
+      Swal.fire({ icon: 'info', title: H('पहले स्थान चुनें'), text: H('कृपया नक्शे पर उस स्थान पर टैप करें जहाँ से साइकिल यात्रा शुरू करनी है।') });
+      return;
+    }
+
+    const names = getCurrentDisplayNames();
+
+    if (!isMainTripStarted) {
+      Swal.fire({
+        title: H('🚩 मुख्य यात्रा प्रारंभ करें'),
+        html: `<b>${TRIP_TITLE}</b><br><br>${H("प्रारंभ बिंदु:")} <b>${names.customTitle}</b>`,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: H('🚩 मुख्य यात्रा शुरू करें'),
+        cancelButtonText: H('रद्द करें')
+      }).then(res => {
+        if (res.isConfirmed) {
+          isMainTripStarted = true;
+          startDailyTrip(selectedLat, selectedLng, names.mapAddr, names.customTitle, H("मुख्य यात्रा प्रारंभ"));
+        }
+      });
+      return;
+    }
+
+    if (!tripState || !tripState.active) {
+      if (lastCompletedPoint) {
+        const prevTitle = H(lastCompletedPoint.customTitle || lastCompletedPoint.placeName);
+        Swal.fire({
+          title: H('आज की साइकिल यात्रा शुरू करें'),
+          html: `${H("कल का अंतिम पड़ाव:")}<br><b>${prevTitle}</b><br><br>${H("क्या यहीं से डिफ़ॉल्ट रूप से आज की यात्रा शुरू करें?")}`,
+          icon: 'question',
+          showDenyButton: true,
+          showCancelButton: true,
+          confirmButtonText: H('✅ हाँ, कल के अंतिम स्थान से'),
+          denyButtonText: H('📍 नक्शे पर चुने गए स्थान से'),
+          cancelButtonText: H('रद्द करें')
+        }).then(result => {
+          if (result.isConfirmed) {
+            startDailyTrip(lastCompletedPoint.lat, lastCompletedPoint.lng, H(lastCompletedPoint.placeName), prevTitle, H("दैनिक यात्रा प्रारंभ"));
+          } else if (result.isDenied) {
+            startDailyTrip(selectedLat, selectedLng, names.mapAddr, names.customTitle, H("दैनिक यात्रा प्रारंभ"));
+          }
+        });
+      } else {
+        Swal.fire({
+          title: H('आज की यात्रा शुरू करें?'),
+          html: `${H("प्रारंभ स्थान:")} <b>${names.customTitle}</b>`,
+          icon: 'info',
+          showCancelButton: true,
+          confirmButtonText: H('▶ हाँ, शुरू करें'),
+          cancelButtonText: H('रद्द करें')
+        }).then(res => {
+          if (res.isConfirmed) startDailyTrip(selectedLat, selectedLng, names.mapAddr, names.customTitle, H("दैनिक यात्रा प्रारंभ"));
+        });
+      }
+    } else {
+      Swal.fire({
+        title: H('आज की यात्रा समाप्त करें?'),
+        html: `${H("समाप्ति स्थान:")} <b>${names.customTitle}</b><br>${H("आज की कुल दूरी:")} <b>${tripState.totalKm.toFixed(2)} km</b>`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: H('⏹ हाँ, आज की यात्रा बंद करें'),
+        cancelButtonText: H('अभी नहीं')
+      }).then(res => {
+        if (res.isConfirmed) stopCurrentTrip();
+      });
+    }
+  }
+
+  function startDailyTrip(lat, lng, mapAddr, customTitle, eventLabel) {
+    const tripId = "NARMADA-" + new Date().toISOString().slice(0,10) + "-" + Math.floor(100 + Math.random()*900);
+
+    tripState = {
+      active: true,
+      tripId: tripId,
+      tripTitle: TRIP_TITLE,
+      startPlace: customTitle,
+      totalKm: 0,
+      points: [{ lat: lat, lng: lng, name: mapAddr, customTitle: customTitle, segKm: 0, routeCoords: [] }]
+    };
+    localStorage.setItem('custom_trip_state', JSON.stringify(tripState));
+    previewRoutesGroup.clearLayers();
+    document.getElementById('routeOptionsContainer').style.display = 'none';
+    document.getElementById('routesCountStrip').style.display = 'none';
+    setPinOnly(lat, lng, mapAddr, customTitle);
+    redrawSavedTripRoute();
+    updateTripUI();
+
+    sendToSheet({
+      lat: lat, lng: lng,
+      placeName: mapAddr,
+      customTitle: customTitle,
+      eventType: eventLabel,
+      tripId: tripId,
+      tripTitle: TRIP_TITLE,
+      distanceKm: 0,
+      routeGeometry: ""
+    });
+  }
+
+  function saveCustomPoint() {
+    const names = getCurrentDisplayNames();
+
+    if (!isMainTripStarted || !tripState || !tripState.active) {
+      handleTripButton();
+      return;
+    }
+
+    for (let p of tripState.points) {
+      const distM = getDistanceMeters(selectedLat, selectedLng, p.lat, p.lng);
+      if (distM < 100) {
+        Swal.fire({ icon: 'warning', title: H('डुप्लीकेट स्थान!'), text: H(`यह स्थान पहले से सेव है - ${Math.round(distM)}m के दायरे में। कृपया 100m से दूर अगला स्थान चुनें।`) });
+        return;
+      }
+    }
+
+    let chosenRoute = candidateRoutes[selectedCandidateIndex];
+    let segKm = chosenRoute ? chosenRoute.km : (getDistanceMeters(tripState.points[tripState.points.length-1].lat, tripState.points[tripState.points.length-1].lng, selectedLat, selectedLng) / 1000);
+    let routeCoords = chosenRoute ? chosenRoute.coords : [[tripState.points[tripState.points.length-1].lat, tripState.points[tripState.points.length-1].lng], [selectedLat, selectedLng]];
+
+    tripState.totalKm += segKm;
+    tripState.points.push({
+      lat: selectedLat,
+      lng: selectedLng,
+      name: names.mapAddr,
+      customTitle: names.customTitle,
+      segKm: segKm,
+      routeCoords: routeCoords
+    });
+
+    localStorage.setItem('custom_trip_state', JSON.stringify(tripState));
+    previewRoutesGroup.clearLayers();
+    document.getElementById('routeOptionsContainer').style.display = 'none';
+    document.getElementById('routesCountStrip').style.display = 'none';
+    document.getElementById('customTitle').value = "";
+    redrawSavedTripRoute();
+    updateTripUI();
+
+    sendToSheet({
+      lat: selectedLat,
+      lng: selectedLng,
+      placeName: names.mapAddr,
+      customTitle: names.customTitle,
+      eventType: H("कस्टम पड़ाव"),
+      tripId: tripState.tripId,
+      tripTitle: TRIP_TITLE,
+      distanceKm: segKm,
+      routeGeometry: compressCoordsForSheet(routeCoords)
+    });
+  }
+
+  function stopCurrentTrip() {
+    const names = getCurrentDisplayNames();
+    const prevPoint = tripState.points[tripState.points.length - 1];
+    const distM = getDistanceMeters(prevPoint.lat, prevPoint.lng, selectedLat, selectedLng);
+    let finalSegKm = 0;
+    let routeCoords = [];
+
+    if (distM >= 100) {
+      let chosenRoute = candidateRoutes[selectedCandidateIndex];
+      finalSegKm = chosenRoute ? chosenRoute.km : (distM / 1000);
+      routeCoords = chosenRoute ? chosenRoute.coords : [[prevPoint.lat, prevPoint.lng], [selectedLat, selectedLng]];
+      tripState.totalKm += finalSegKm;
+      tripState.points.push({ lat: selectedLat, lng: selectedLng, name: names.mapAddr, customTitle: names.customTitle, segKm: finalSegKm, routeCoords: routeCoords });
+      previewRoutesGroup.clearLayers();
+      document.getElementById('routeOptionsContainer').style.display = 'none';
+      document.getElementById('routesCountStrip').style.display = 'none';
+      redrawSavedTripRoute();
+    }
+
+    const finalTotalKm = tripState.totalKm.toFixed(2);
+    const totalStops = tripState.points.length;
+    const completedTripId = tripState.tripId;
+
+    lastCompletedPoint = { lat: selectedLat, lng: selectedLng, placeName: names.mapAddr, customTitle: names.customTitle };
+    localStorage.setItem('last_completed_point', JSON.stringify(lastCompletedPoint));
+
+    tripState = null;
+    localStorage.removeItem('custom_trip_state');
+    updateTripUI();
+
+    sendToSheet({
+      lat: selectedLat, lng: selectedLng,
+      placeName: names.mapAddr,
+      customTitle: names.customTitle,
+      eventType: H("दैनिक यात्रा समाप्त"),
+      tripId: completedTripId,
+      tripTitle: TRIP_TITLE,
+      distanceKm: finalSegKm,
+      totalTripKm: finalTotalKm,
+      stopCount: totalStops,
+      routeGeometry: compressCoordsForSheet(routeCoords)
+    });
+  }
+
+  function updateTripUI() {
+    const banner = document.getElementById('tripBanner');
+    const status = document.getElementById('tripStatusText');
+    const stats = document.getElementById('tripStatsText');
+    const btn = document.getElementById('tripToggleBtn');
+    btn.disabled = false;
+
+    if (!isMainTripStarted) {
+      banner.className = "trip-banner main-pending";
+      status.style.color = "#d84315";
+      status.innerText = H("🚩 मुख्य यात्रा प्रारंभ नहीं हुई");
+      stats.innerText = TRIP_TITLE;
+      btn.className = "btn btn-warning btn-sm fw-bold rounded-pill px-3 text-dark";
+      btn.innerText = H("🚩 मुख्य यात्रा शुरू");
+    } else if (tripState && tripState.active) {
+      banner.className = "trip-banner active";
+      status.style.color = "#198754";
+      status.innerText = H("🟢 सक्रिय: नर्मदा परिक्रमा यात्रा");
+      stats.innerText = H(`साइकिल दूरी: ${tripState.totalKm.toFixed(2)} km | पड़ाव: ${tripState.points.length}`);
+      btn.className = "btn btn-danger btn-sm fw-bold rounded-pill px-3";
+      btn.innerText = H("⏹ आज की यात्रा बंद");
+    } else {
+      banner.className = "trip-banner";
+      status.style.color = "#0d6efd";
+      status.innerText = H("🚲 आज की साइकिल यात्रा शुरू करने के लिए तैयार");
+      stats.innerText = lastCompletedPoint ? H(`अंतिम: ${H(lastCompletedPoint.customTitle).substring(0, 26)}...`) : TRIP_TITLE;
+      btn.className = "btn btn-primary btn-sm fw-bold rounded-pill px-3";
+      btn.innerText = H("▶ आज की यात्रा शुरू");
+    }
+  }
+
+  function sendToSheet(payload) {
+    Swal.fire({ title: H('डेटा सेव हो रहा है...'), didOpen: () => Swal.showLoading() });
+
+    fetch(SCRIPT_URL, {
+      method: "POST",
+      mode: "no-cors",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    })
+    .then(() => {
+      Swal.fire({ icon: 'success', title: H(payload.eventType) + H(' सेव!'), text: H(payload.customTitle), timer: 1500, showConfirmButton: false });
+      setTimeout(syncStateWithGoogleSheet, 1800);
+    })
+    .catch(err => Swal.fire(H('त्रुटि'), err.message, 'error'));
+  }
+
+  let rawLocationsData = [];
+  let rawTripsData = [];
+  function openReportModal() {
+    const modal = new bootstrap.Modal(document.getElementById('reportModal'));
+    modal.show();
+    document.getElementById('summaryTableBody').innerHTML = `<tr><td colspan="3" class="text-center">${H("डेटा लोड हो रहा है...")}</td></tr>`;
+
+    updateTodayTripCard([], []);
+
+    fetch(SCRIPT_URL + "?action=getReport&t=" + Date.now())
+      .then(r => r.json())
+      .then(res => {
+        rawLocationsData = res.locations || [];
+        rawTripsData = res.trips || [];
+
+        updateTodayTripCard(rawTripsData, rawLocationsData);
+        filterReport('day', document.querySelectorAll('#reportModal .btn-group button')[1]);
+      })
+      .catch(() => {
+        document.getElementById('summaryTableBody').innerHTML = `<tr><td colspan="3" class="text-center text-danger">${H("रिपोर्ट लोड नहीं हो सकी।")}</td></tr>`;
+      });
+  }
+
+  function updateTodayTripCard(trips, locs) {
+    document.getElementById('dashTripTitle').innerText = H("🚩 ") + TRIP_TITLE;
+    
+    if (trips && trips.length > 0) {
+      const latestTrip = trips[trips.length - 1];
+      const startPlace = H(latestTrip[3]) || "-";
+      const statusText = H(latestTrip[7]);
+      
+      document.getElementById('todayStartLoc').innerText = startPlace;
+      
+      if (statusText === H("पूर्ण")) {
+        document.getElementById('todayEndLoc').innerText = H(latestTrip[4]) || "-";
+        document.getElementById('todayTripBadge').className = "badge bg-success fw-bold";
+        document.getElementById('todayTripBadge').innerText = H("यात्रा पूर्ण");
+      } else {
+        const lastStopObj = (locs.length > 0) ? locs[locs.length - 1] : null;
+        const lastStopName = lastStopObj ? H(lastStopObj[9] || lastStopObj[1]) : startPlace;
+        document.getElementById('todayEndLoc').innerText = lastStopName + H(" - यात्रा जारी है");
+        document.getElementById('todayTripBadge').className = "badge bg-warning text-dark fw-bold";
+        document.getElementById('todayTripBadge').innerText = H("सक्रिय यात्रा");
+      }
+    } else if (locs && locs.length > 0) {
+      const firstLoc = locs[0];
+      const lastLoc = locs[locs.length - 1];
+      const lastType = H(lastLoc[2]);
+
+      document.getElementById('todayStartLoc').innerText = H(firstLoc[9] || firstLoc[1]);
+      if (lastType === H("दैनिक यात्रा समाप्त")) {
+        document.getElementById('todayEndLoc').innerText = H(lastLoc[9] || lastLoc[1]);
+        document.getElementById('todayTripBadge').className = "badge bg-success fw-bold";
+        document.getElementById('todayTripBadge').innerText = H("यात्रा पूर्ण");
+      } else {
+        document.getElementById('todayEndLoc').innerText = H(lastLoc[9] || lastLoc[1]) + H(" - यात्रा जारी है");
+        document.getElementById('todayTripBadge').className = "badge bg-warning text-dark fw-bold";
+        document.getElementById('todayTripBadge').innerText = H("सक्रिय यात्रा");
+      }
+    } else if (tripState && tripState.active) {
+      const firstP = tripState.points[0];
+      const lastP = tripState.points[tripState.points.length - 1];
+      document.getElementById('todayStartLoc').innerText = H(firstP.customTitle || firstP.name);
+      document.getElementById('todayEndLoc').innerText = H(lastP.customTitle || lastP.name) + H(" - यात्रा जारी है");
+      document.getElementById('todayTripBadge').className = "badge bg-warning text-dark fw-bold";
+      document.getElementById('todayTripBadge').innerText = H("सक्रिय यात्रा");
+    } else {
+      document.getElementById('todayStartLoc').innerText = H("अभी प्रारंभ नहीं हुई");
+      document.getElementById('todayEndLoc').innerText = "-";
+      document.getElementById('todayTripBadge').className = "badge bg-secondary fw-bold";
+      document.getElementById('todayTripBadge').innerText = H("प्रतीक्षारत");
+    }
+  }
+
+  function filterReport(mode, btnEl) {
+    if (btnEl) {
+      document.querySelectorAll('#reportModal .btn-group button').forEach(b => b.classList.remove('active'));
+      btnEl.classList.add('active');
+    }
+
+    let groups = {};
+    let totalKm = 0;
+    let stopsHtml = '';
+
+    rawLocationsData.slice().reverse().forEach(row => {
+      const dist = parseFloat(row[3]) || 0;
+      totalKm += dist;
+      const dt = row[7] ? new Date(row[7]) : new Date();
+      let key = "";
+
+      if (mode === 'hour') {
+        key = dt.toLocaleDateString('hi-IN') + " - " + dt.getHours() + " से " + (dt.getHours()+1) + " बजे";
+      } else if (mode === 'day') {
+        key = dt.toLocaleDateString('hi-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+      } else if (mode === 'week') {
+        const weekStart = new Date(dt);
+        weekStart.setDate(dt.getDate() - dt.getDay());
+        key = H("सप्ताह: ") + weekStart.toLocaleDateString('hi-IN', { day: '2-digit', month: 'short' });
+      } else if (mode === 'month') {
+        key = dt.toLocaleDateString('hi-IN', { month: 'long', year: 'numeric' });
+      }
+
+      if (!groups[key]) groups[key] = { km: 0, count: 0 };
+      groups[key].km += dist;
+      groups[key].count += 1;
+
+      const cleanType = H(row[2]);
+      const cleanTime = H(row[0]);
+      const cleanCustomName = H(row[9] || row[1]);
+      const cleanMapAddress = H(row[1]);
+
+      stopsHtml += `<div class="stop-timeline-card">
+        <div class="d-flex justify-content-between align-items-center mb-1">
+          <span class="badge bg-success">${cleanType}</span>
+          <small class="text-muted">${cleanTime}</small>
+        </div>
+        <div class="fw-bold text-dark" style="font-size: 13.5px;">${cleanCustomName}</div>
+        ${cleanCustomName !== cleanMapAddress ? `<div class="text-muted small mb-1"><i class="bi bi-geo-alt"></i> ${cleanMapAddress}</div>` : ''}
+        <div class="d-flex justify-content-between align-items-center mt-1 pt-1 border-top" style="font-size: 12px;">
+          <span class="text-success fw-semibold">${H("साइकिल दूरी:")} ${dist.toFixed(2)} km</span>
+          <a href="${row[6]}" target="_blank" class="text-decoration-none fw-bold">${H("Google Maps में खोलें ↗")}</a>
+        </div>
+      </div>`;
+    });
+
+    let tableHtml = '';
+    Object.keys(groups).forEach(k => {
+      tableHtml += `<tr><td>${H(k)}</td><td class="fw-bold text-success">${groups[k].km.toFixed(2)} km</td><td>${groups[k].count}</td></tr>`;
+    });
+
+    document.getElementById('repTotalKm').innerText = totalKm.toFixed(2) + " km";
+    document.getElementById('repTotalStops').innerText = rawLocationsData.length;
+    document.getElementById('repTripsCount').innerText = Math.max(rawTripsData.length, rawLocationsData.length > 0 ? 1 : 0);
+    document.getElementById('summaryTableBody').innerHTML = tableHtml || `<tr><td colspan="3" class="text-center">${H("कोई डेटा नहीं मिला")}</td></tr>`;
+    document.getElementById('allStopsList').innerHTML = stopsHtml || `<div class="text-center text-muted small p-3 bg-white rounded">${H("अभी तक कोई पड़ाव सेव नहीं है")}</div>`;
+  }
+
+  function toggleLayer() {
+    const btn = document.getElementById('layerBtn');
+    map.removeLayer(cycleLayer);
+    map.removeLayer(streetLayer);
+    map.removeLayer(satelliteLayer);
+    map.removeLayer(labelsLayer);
+
+    mapMode = (mapMode + 1) % 3;
+    if (mapMode === 0) {
+      streetLayer.addTo(map);
+      btn.classList.remove('active-layer');
+      Swal.fire({ toast: true, position: 'top', icon: 'info', title: H('🗺️ गली व मोहल्ला मैप (OSM)'), showConfirmButton: false, timer: 1200 });
+    } else if (mapMode === 1) {
+      cycleLayer.addTo(map);
+      btn.classList.add('active-layer');
+      Swal.fire({ toast: true, position: 'top', icon: 'info', title: H('🚲 साइकिल व पगडंडी मैप'), showConfirmButton: false, timer: 1200 });
+    } else {
+      satelliteLayer.addTo(map);
+      labelsLayer.addTo(map);
+      btn.classList.add('active-layer');
+      Swal.fire({ toast: true, position: 'top', icon: 'info', title: H('🛰️ सैटेलाइट व्यू'), showConfirmButton: false, timer: 1200 });
+    }
+  }
+
+  function locateUser() {
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(pos => {
+      map.setView([pos.coords.latitude, pos.coords.longitude], 18);
+      selectPoint(pos.coords.latitude, pos.coords.longitude);
+    }, () => Swal.fire(H('GPS बंद है'), H('कृपया मोबाइल की Location चालू करें।'), 'warning'), { enableHighAccuracy: true });
+  }
+
+  function openInGoogleMapsApp() {
+    window.open(`https://www.google.com/maps/dir/?api=1&destination=${selectedLat},${selectedLng}&travelmode=bicycling`, '_blank');
+  }
+
+  function searchPlace() {
+    const q = document.getElementById('searchQuery').value.trim();
+    if (!q) return;
+    fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=1`)
+      .then(r => r.json())
+      .then(data => {
+        if (data && data.length > 0) {
+          map.setView([parseFloat(data[0].lat), parseFloat(data[0].lon)], 17);
+          selectPoint(parseFloat(data[0].lat), parseFloat(data[0].lon));
+        } else Swal.fire(H('नहीं मिला'), H('यह स्थान नक्शे पर नहीं मिला।'), 'info');
+      });
+  }
+// ]]>
+</script>

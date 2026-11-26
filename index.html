@@ -1,121 +1,149 @@
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
-<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet" />
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>नर्मदा परिक्रमा यात्रा - कस्टम रूट व लोकेशन ट्रैकर</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-<style>
-  body { overflow: hidden !important; margin: 0 !important; padding: 0 !important; }
-  #narmada-app-wrapper {
-    position: fixed !important;
-    top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important;
-    width: 100vw !important; height: 100vh !important;
-    z-index: 99999 !important;
-    background: #e5e3df;
-    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-  }
-  #narmada-app-wrapper * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  <style>
+    body { overflow: hidden !important; margin: 0 !important; padding: 0 !important; }
+    #narmada-app-wrapper {
+      position: fixed !important;
+      top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important;
+      width: 100vw !important; height: 100vh !important;
+      z-index: 99999 !important;
+      background: #e5e3df;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    }
+    #narmada-app-wrapper * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
-  #map { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
+    #map { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
 
-  .top-search-bar {
-    position: absolute; top: 10px; left: 12px; right: 12px; z-index: 1000;
-    background: #fff; border-radius: 50px; padding: 5px 14px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.2); display: flex; align-items: center; gap: 8px;
-  }
-  .top-search-bar input { border: none; outline: none; width: 100%; font-size: 13.5px; background: transparent; }
-  .top-search-bar button {
-    border: none; background: #e65100; color: white; border-radius: 50%;
-    width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-  }
+    /* टॉप सर्च बार */
+    .top-search-bar {
+      position: absolute; top: 10px; left: 12px; right: 12px; z-index: 1000;
+      background: rgba(255, 255, 255, 0.96); backdrop-filter: blur(6px);
+      border-radius: 50px; padding: 4px 12px;
+      box-shadow: 0 3px 12px rgba(0,0,0,0.16); display: flex; align-items: center; gap: 8px;
+    }
+    .top-search-bar input { border: none; outline: none; width: 100%; font-size: 13px; background: transparent; }
+    .top-search-bar button {
+      border: none; background: #e65100; color: white; border-radius: 50%;
+      width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
 
-  .trip-banner {
-    position: absolute; top: 60px; left: 12px; right: 66px; z-index: 1000;
-    background: rgba(255, 255, 255, 0.97); border-radius: 14px; padding: 8px 12px;
-    box-shadow: 0 3px 12px rgba(0,0,0,0.18); display: flex; justify-content: space-between; align-items: center;
-    border-left: 4px solid #ff6f00;
-  }
-  .trip-banner.active { border-left-color: #198754; background: #f0fdf4; }
-  .trip-banner.main-pending { border-left-color: #d84315; background: #fff3e0; }
+    /* यात्रा स्टेटस पट्टी */
+    .trip-banner {
+      position: absolute; top: 54px; left: 12px; right: 62px; z-index: 1000;
+      background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(6px);
+      border-radius: 12px; padding: 6px 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.14); display: flex; justify-content: space-between; align-items: center;
+      border-left: 4px solid #ff6f00;
+    }
+    .trip-banner.active { border-left-color: #198754; background: rgba(240, 253, 244, 0.96); }
+    .trip-banner.main-pending { border-left-color: #d84315; background: rgba(255, 243, 224, 0.96); }
 
-  .fab-container {
-    position: absolute; right: 12px; top: 60px; z-index: 1000;
-    display: flex; flex-direction: column; gap: 7px;
-  }
-  .fab-btn {
-    width: 40px; height: 40px; border-radius: 50%; background: #fff; border: none;
-    box-shadow: 0 3px 10px rgba(0,0,0,0.25); display: flex; align-items: center; justify-content: center; font-size: 16px; cursor: pointer;
-  }
-  .fab-btn.active-layer { background: #1a73e8; color: #fff; }
-  .fab-btn.active-history { background: #6f42c1; color: #fff; }
+    /* दाईं ओर कॉम्पैक्ट फ्लोटिंग आइकॉन बटन (डैशबोर्ड आइकॉन सहित) */
+    .fab-container {
+      position: absolute; right: 10px; top: 54px; z-index: 1000;
+      display: flex; flex-direction: column; gap: 7px;
+    }
+    .fab-btn {
+      width: 40px; height: 40px; border-radius: 50%; background: rgba(255,255,255,0.96); border: none;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.22); display: flex; align-items: center; justify-content: center; font-size: 16px; cursor: pointer;
+    }
+    .fab-btn.active-layer { background: #1a73e8; color: #fff; }
+    .fab-btn.active-history { background: #6f42c1; color: #fff; }
+    .fab-btn.dash-icon-btn { background: #212529; color: #ffc107; }
 
-  .bottom-sheet {
-    position: absolute; bottom: 0; left: 0; right: 0; z-index: 1000;
-    background: #ffffff; border-top-left-radius: 22px; border-top-right-radius: 22px;
-    padding: 10px 16px 14px 16px; box-shadow: 0 -5px 25px rgba(0,0,0,0.22);
-  }
-  .coords-pill { font-size: 11px; background: #e8f5e9; color: #1b5e20; padding: 3px 9px; border-radius: 20px; font-weight: 600; }
+    /* कॉम्पैक्ट बॉटम शीट ताकि मैप ज़्यादा दिखे */
+    .bottom-sheet {
+      position: absolute; bottom: 0; left: 0; right: 0; z-index: 1000;
+      background: rgba(255, 255, 255, 0.98); border-top-left-radius: 18px; border-top-right-radius: 18px;
+      padding: 8px 14px 10px 14px; box-shadow: 0 -4px 20px rgba(0,0,0,0.18);
+    }
+    .coords-pill { font-size: 10.5px; background: #e8f5e9; color: #1b5e20; padding: 2px 8px; border-radius: 20px; font-weight: 600; }
 
-  .routes-summary-strip {
-    background: #eef6ff; border: 1px solid #b6d4fe; color: #084298;
-    border-radius: 10px; padding: 5px 10px; margin-top: 6px;
-    font-size: 11.5px; font-weight: 700; display: none;
-    justify-content: space-between; align-items: center;
-  }
+    .routes-summary-strip {
+      background: #eef6ff; border: 1px solid #b6d4fe; color: #084298;
+      border-radius: 8px; padding: 4px 8px; margin-top: 5px;
+      font-size: 11px; font-weight: 700; display: none;
+      justify-content: space-between; align-items: center;
+    }
 
-  .tag-chips-bar, .route-options-bar {
-    display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; margin-top: 6px; scrollbar-width: none;
-  }
-  .tag-chips-bar::-webkit-scrollbar, .route-options-bar::-webkit-scrollbar { display: none; }
+    .tag-chips-bar, .route-options-bar {
+      display: flex; gap: 5px; overflow-x: auto; padding-bottom: 2px; margin-top: 5px; scrollbar-width: none;
+    }
+    .tag-chips-bar::-webkit-scrollbar, .route-options-bar::-webkit-scrollbar { display: none; }
 
-  .tag-chip {
-    border: 1px solid #ffe0b2; background: #fff8e1; color: #bf360c; border-radius: 16px;
-    padding: 3px 10px; font-size: 11.5px; font-weight: 600; white-space: nowrap; cursor: pointer;
-  }
-  .route-chip {
-    border: 1.5px solid #ced4da; background: #f8f9fa; border-radius: 18px;
-    padding: 4px 11px; font-size: 11.5px; font-weight: 600; white-space: nowrap; cursor: pointer;
-  }
-  .route-chip.selected {
-    border-color: #198754; background: #198754; color: #ffffff;
-    box-shadow: 0 2px 6px rgba(25, 135, 84, 0.3);
-  }
+    .tag-chip {
+      border: 1px solid #ffe0b2; background: #fff8e1; color: #bf360c; border-radius: 14px;
+      padding: 2px 9px; font-size: 11px; font-weight: 600; white-space: nowrap; cursor: pointer;
+    }
+    .route-chip {
+      border: 1.5px solid #ced4da; background: #f8f9fa; border-radius: 16px;
+      padding: 3px 10px; font-size: 11px; font-weight: 600; white-space: nowrap; cursor: pointer;
+    }
+    .route-chip.selected {
+      border-color: #198754; background: #198754; color: #ffffff;
+    }
 
-  .input-group-custom {
-    background: #f8f9fa; border: 1.5px solid #e0e0e0; border-radius: 10px;
-    padding: 5px 10px; margin-top: 6px; display: flex; align-items: center; gap: 8px;
-  }
-  .input-group-custom input { border: none; background: transparent; outline: none; width: 100%; font-size: 13px; }
-  .leaflet-top.leaflet-left { top: 122px; }
+    .input-group-custom {
+      background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px;
+      padding: 4px 8px; margin-top: 5px; display: flex; align-items: center; gap: 6px;
+    }
+    .input-group-custom input { border: none; background: transparent; outline: none; width: 100%; font-size: 12.5px; }
+    .leaflet-top.leaflet-left { top: 112px; }
 
-  .modal { z-index: 100005 !important; }
-  .modal-backdrop { z-index: 100004 !important; }
-  .swal2-container { z-index: 100010 !important; }
+    /* कस्टम ड्रैग हैंडल स्टाइल */
+    .drag-handle-icon {
+      background: #ffffff;
+      border: 3px solid #ff6f00;
+      border-radius: 50%;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.45);
+      cursor: grab;
+    }
+    .drag-handle-mid {
+      background: #fff3e0;
+      border: 2.5px dashed #198754;
+      border-radius: 50%;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.35);
+      cursor: grab;
+    }
 
-  .dash-hero-header {
-    background: linear-gradient(135deg, #ff6f00, #d84315);
-    color: white; border-radius: 16px; padding: 14px; margin-bottom: 12px;
-  }
-  .dash-loc-box {
-    background: rgba(255, 255, 255, 0.96); color: #212529;
-    border-radius: 12px; padding: 10px 12px; margin-top: 10px;
-  }
-  .metric-card {
-    background: #ffffff; border-radius: 14px; padding: 10px 8px;
-    border: 1px solid #e9ecef; text-align: center;
-  }
-  .stop-timeline-card {
-    background: #ffffff; border-radius: 12px; padding: 10px 12px; margin-bottom: 8px;
-    border-left: 4px solid #198754; box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-  }
-  .report-table th, .report-table td { font-size: 12px; padding: 7px; vertical-align: middle; }
-</style>
+    .modal { z-index: 100005 !important; }
+    .modal-backdrop { z-index: 100004 !important; }
+    .swal2-container { z-index: 100010 !important; }
+
+    .dash-hero-header {
+      background: linear-gradient(135deg, #ff6f00, #d84315);
+      color: white; border-radius: 16px; padding: 14px; margin-bottom: 12px;
+    }
+    .dash-loc-box {
+      background: rgba(255, 255, 255, 0.96); color: #212529;
+      border-radius: 12px; padding: 10px 12px; margin-top: 10px;
+    }
+    .metric-card {
+      background: #ffffff; border-radius: 14px; padding: 10px 8px;
+      border: 1px solid #e9ecef; text-align: center;
+    }
+    .stop-timeline-card {
+      background: #ffffff; border-radius: 12px; padding: 10px 12px; margin-bottom: 8px;
+      border-left: 4px solid #198754; box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+    .report-table th, .report-table td { font-size: 12px; padding: 7px; vertical-align: middle; }
+  </style>
+</head>
+<body>
 
 <div id="narmada-app-wrapper">
   <!-- 1. सर्च बार -->
   <div class="top-search-bar">
-    <i class="bi bi-bicycle text-success fs-4"></i>
+    <i class="bi bi-bicycle text-success fs-5"></i>
     <input type="text" id="searchQuery" placeholder="स्थान खोजें - घाट, आश्रम, गली, मंदिर" onkeypress="if(event.key==='Enter') searchPlace()" />
     <button onclick="searchPlace()"><i class="bi bi-search"></i></button>
   </div>
@@ -123,28 +151,35 @@
   <!-- 2. यात्रा नियंत्रण पट्टी -->
   <div id="tripBanner" class="trip-banner">
     <div style="max-width: 64%;">
-      <div id="tripStatusText" class="fw-bold text-secondary" style="font-size: 12px;">शीट से स्थिति जांची जा रही है...</div>
-      <div id="tripStatsText" class="text-muted text-truncate" style="font-size: 11px;">कृपया प्रतीक्षा करें</div>
+      <div id="tripStatusText" class="fw-bold text-secondary" style="font-size: 11.5px;">शीट से स्थिति जांची जा रही है...</div>
+      <div id="tripStatsText" class="text-muted text-truncate" style="font-size: 10.5px;">कृपया प्रतीक्षा करें</div>
     </div>
-    <button id="tripToggleBtn" class="btn btn-secondary btn-sm fw-bold rounded-pill px-3" onclick="handleTripButton()" disabled>...</button>
+    <button id="tripToggleBtn" class="btn btn-secondary btn-sm fw-bold rounded-pill px-3" style="font-size: 11.5px;" onclick="handleTripButton()" disabled>...</button>
   </div>
 
-  <!-- 3. फ्लोटिंग एक्शन बटन (GPS, मैप व्यू, पिछले दिनों की यात्रा लाइन, डैशबोर्ड, Google Maps) -->
+  <!-- 3. फ्लोटिंग आइकॉन बटन (GPS, लेटेस्ट मैप लेयर्स, पिछली यात्राएं, डैशबोर्ड आइकॉन, Google Maps) -->
   <div class="fab-container">
     <button class="fab-btn" onclick="locateUser()" title="वर्तमान GPS लोकेशन"><i class="bi bi-crosshair text-primary"></i></button>
-    <button class="fab-btn" id="layerBtn" onclick="toggleLayer()" title="गली मैप / सैटेलाइट बदलें"><i class="bi bi-layers-fill"></i></button>
+    <button class="fab-btn" id="layerBtn" onclick="toggleLayer()" title="लेटेस्ट मैप / सैटेलाइट बदलें"><i class="bi bi-layers-fill"></i></button>
     <button class="fab-btn active-history" id="historyBtn" onclick="togglePastTrips()" title="पिछले दिनों की यात्रा लाइन दिखाएं/छिपाएं"><i class="bi bi-signpost-2"></i></button>
-    <button class="fab-btn" onclick="openReportModal()" title="यात्रा डैशबोर्ड"><i class="bi bi-bar-chart-line-fill text-warning"></i></button>
+    <button class="fab-btn dash-icon-btn" onclick="openReportModal()" title="यात्रा डैशबोर्ड खोलें"><i class="bi bi-bar-chart-line-fill"></i></button>
     <button class="fab-btn" onclick="openInGoogleMapsApp()" title="Google Maps ऐप"><i class="bi bi-map-fill text-danger"></i></button>
   </div>
 
   <!-- 4. नक्शा -->
   <div id="map"></div>
 
-  <!-- 5. बॉटम शीट -->
+  <!-- 5. कॉम्पैक्ट बॉटम शीट (कस्टम ड्रैग व पिन-दर-पिन मोड सहित) -->
   <div class="bottom-sheet">
     <div class="d-flex justify-content-between align-items-center">
-      <span class="fw-bold text-dark" style="font-size: 13px;"><i class="bi bi-bezier2 text-success me-1"></i> सड़क व गली मार्ग ग्राफ</span>
+      <div class="d-flex align-items-center gap-1">
+        <button id="customDrawToggleBtn" class="btn btn-outline-warning btn-sm py-0 px-2 fw-bold text-dark" style="font-size: 11px;" onclick="toggleCustomPinMode()" title="नक्शे पर टैप करके थोड़ा-थोड़ा रास्ता जोड़ें या बिंदुओं को खींचें">
+          ✏️ कस्टम पिन/ड्रैग: OFF
+        </button>
+        <button id="undoPinBtn" class="btn btn-outline-danger btn-sm py-0 px-2" style="font-size: 11px; display:none;" onclick="undoLastCustomPin()" title="आखिरी जोड़ा बिंदु हटाएं">
+          ↩️
+        </button>
+      </div>
       <span id="coordsText" class="coords-pill">नक्शे पर टैप करें</span>
     </div>
 
@@ -160,30 +195,36 @@
     <!-- त्वरित स्थान श्रेणी चिप्स -->
     <div class="tag-chips-bar">
       <span class="tag-chip" onclick="applyTag('आश्रम - ')">🛕 आश्रम</span>
-      <span class="tag-chip" onclick="applyTag('होटल व धर्मशाला - ')">🏨 होटल व धर्मशाला</span>
-      <span class="tag-chip" onclick="applyTag('भोजन व भंडारा - ')">🍲 भोजन व भंडारा</span>
-      <span class="tag-chip" onclick="applyTag('नर्मदा घाट व मंदिर - ')">🌊 घाट व मंदिर</span>
-      <span class="tag-chip" onclick="applyTag('विश्राम स्थल - ')">🚲 विश्राम स्थल</span>
+      <span class="tag-chip" onclick="applyTag('होटल व धर्मशाला - ')">🏨 होटल</span>
+      <span class="tag-chip" onclick="applyTag('भोजन व भंडारा - ')">🍲 भोजन</span>
+      <span class="tag-chip" onclick="applyTag('नर्मदा घाट व मंदिर - ')">🌊 घाट</span>
+      <span class="tag-chip" onclick="applyTag('विश्राम स्थल - ')">🚲 विश्राम</span>
     </div>
 
-    <div class="input-group-custom">
-      <i class="bi bi-building-fill text-warning"></i>
-      <input type="text" id="customTitle" placeholder="कस्टम नाम लिखें - नर्मदा आश्रम, होटल, गली" />
-      <i class="bi bi-x-circle-fill text-muted" style="cursor:pointer;" onclick="document.getElementById('customTitle').value=''"></i>
+    <div class="row g-1 mt-1">
+      <div class="col-6">
+        <div class="input-group-custom mt-0">
+          <i class="bi bi-building-fill text-warning"></i>
+          <input type="text" id="customTitle" placeholder="कस्टम नाम (आश्रम/होटल)" />
+          <i class="bi bi-x text-muted" style="cursor:pointer;" onclick="document.getElementById('customTitle').value=''"></i>
+        </div>
+      </div>
+      <div class="col-6">
+        <div class="input-group-custom mt-0">
+          <i class="bi bi-geo-alt text-muted"></i>
+          <input type="text" id="placeName" placeholder="नक्शे का पता..." />
+          <i class="bi bi-x text-muted" style="cursor:pointer;" onclick="document.getElementById('placeName').value=''"></i>
+        </div>
+      </div>
     </div>
 
-    <div class="input-group-custom mb-2">
-      <i class="bi bi-geo-alt text-muted"></i>
-      <input type="text" id="placeName" placeholder="नक्शे पर क्लिक करते ही पता दिखेगा..." />
-      <i class="bi bi-x-circle-fill text-muted" style="cursor:pointer;" onclick="document.getElementById('placeName').value=''"></i>
-    </div>
-
-    <div class="d-flex gap-2">
-      <button id="saveBtn" class="btn btn-success w-100 fw-bold rounded-3 py-2" onclick="saveCustomPoint()" disabled>
+    <div class="d-flex gap-2 mt-2">
+      <button id="saveBtn" class="btn btn-success w-100 fw-bold rounded-3 py-1" style="font-size: 13.5px;" onclick="saveCustomPoint()" disabled>
         🚲 चुना गया मार्ग व पड़ाव सेव करें
       </button>
-      <button class="btn btn-dark fw-bold rounded-3 px-3" onclick="openReportModal()">
-        📊 डैशबोर्ड
+      <!-- डैशबोर्ड केवल आइकॉन बटन के रूप में -->
+      <button class="btn btn-dark rounded-3 px-3 py-1" onclick="openReportModal()" title="यात्रा डैशबोर्ड">
+        <i class="bi bi-bar-chart-line-fill text-warning"></i>
       </button>
     </div>
   </div>
@@ -310,16 +351,24 @@
   }
 
   let selectedLat = 23.6355, selectedLng = 79.0736, marker = null, mapMode = 0;
-  const map = L.map('map').setView([selectedLat, selectedLng], 16);
+  const map = L.map('map', { zoomControl: true }).setView([selectedLat, selectedLng], 16);
 
-  const streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 20, attribution: '© OpenStreetMap'
+  // 1. लेटेस्ट CartoDB Voyager HD मैप (सबसे साफ लेबल, सड़कें और आधुनिक लुक)
+  const voyagerLatestLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+    maxZoom: 20, subdomains: 'abcd', attribution: '© OpenStreetMap & CARTO HD'
   }).addTo(map);
 
+  // 2. OpenStreetMap Standard (विस्तृत गली व मोहल्ला मैप)
+  const streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 20, attribution: '© OpenStreetMap'
+  });
+
+  // 3. CyclOSM (साइकिल व ग्रामीण पगडंडी मैप)
   const cycleLayer = L.tileLayer('https://{s}.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png', {
     maxZoom: 20, attribution: '© CyclOSM'
   });
 
+  // 4. Esri World Imagery HD सैटेलाइट + स्पष्ट स्थान नाम
   const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 });
   const labelsLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 });
 
@@ -328,13 +377,17 @@
   let lastCompletedPoint = null;
   let showPastTripsFlag = true;
 
-  // 3 लेयर ग्रुप्स: 1) पिछले दिनों की यात्राएं, 2) आज की सक्रिय यात्रा, 3) नए क्लिक पर संभावित रास्ते
   let pastTripsGroup = L.layerGroup().addTo(map);
   let savedRouteGroup = L.layerGroup().addTo(map);
   let previewRoutesGroup = L.layerGroup().addTo(map);
+  let customDragGroup = L.layerGroup().addTo(map); // कस्टम ड्रैग और पिन-दर-पिन हैंडल्स के लिए
 
   let candidateRoutes = [];
   let selectedCandidateIndex = 0;
+
+  // कस्टम रूट एडिटिंग / पिन-दर-पिन स्टेट
+  let isCustomPinMode = false;
+  let customWaypoints = []; // [{lat, lng}, ...]
 
   window.addEventListener("load", function() {
     sanitizeBloggerDOM();
@@ -342,7 +395,6 @@
     syncStateWithGoogleSheet();
   });
 
-  // Google Polyline6 / Polyline5 डिकोडर (Valhalla के सटीक घुमावदार रास्ते को नक्शे पर खींचने के लिए)
   function decodePolyline(str, precision) {
     let index = 0, lat = 0, lng = 0, coordinates = [], shift = 0, result = 0, byte = null, latitude_change, longitude_change;
     const factor = Math.pow(10, precision || 6);
@@ -368,10 +420,8 @@
     return coordinates;
   }
 
-  // नक्शे पर सेव करने के लिए निर्देशांक को हल्का (Simplify) करना ताकि Google Sheet में आसानी से सेव हो
   function compressCoordsForSheet(coords) {
     if (!coords || coords.length === 0) return "";
-    // अधिकतम 120 बिंदु रखें ताकि शीट का सेल ओवरफ्लो न हो
     const step = Math.max(1, Math.floor(coords.length / 120));
     let sampled = [];
     for (let i = 0; i < coords.length; i += step) {
@@ -398,6 +448,7 @@
           pastTripsGroup.clearLayers();
           savedRouteGroup.clearLayers();
           previewRoutesGroup.clearLayers();
+          customDragGroup.clearLayers();
           if (marker) { map.removeLayer(marker); marker = null; }
           document.getElementById('coordsText').innerText = H("नक्शे पर टैप करें");
           document.getElementById('placeName').value = "";
@@ -408,7 +459,6 @@
           tripState = JSON.parse(localStorage.getItem('custom_trip_state') || 'null');
           lastCompletedPoint = res.lastEndPoint || JSON.parse(localStorage.getItem('last_completed_point') || 'null');
 
-          // पिछले दिनों की सभी यात्राओं की लाइन नक्शे पर बनाएं
           drawPastTripsFromSheet(locs, tripState ? tripState.tripId : null);
 
           if (tripState && tripState.active) {
@@ -431,17 +481,15 @@
       });
   }
 
-  // पिछले दिनों की यात्राओं को अलग-अलग रंगों में नक्शे पर दिखाना
   const PAST_DAY_COLORS = ['#6f42c1', '#d63384', '#fd7e14', '#20c997', '#6610f2'];
   function drawPastTripsFromSheet(locs, activeTripId) {
     pastTripsGroup.clearLayers();
     if (!showPastTripsFlag || !locs || locs.length === 0) return;
 
-    // यात्रा ID के अनुसार समूह बनाएं
     let tripsMap = {};
     locs.forEach(row => {
       const tId = row[8] || "OLD-TRIP";
-      if (activeTripId && tId === activeTripId) return; // आज की सक्रिय यात्रा को अलग लेयर में दिखाएंगे
+      if (activeTripId && tId === activeTripId) return;
       if (!tripsMap[tId]) tripsMap[tId] = [];
       tripsMap[tId].push(row);
     });
@@ -459,7 +507,7 @@
         const customName = H(row[9] || row[1]);
         const timeStr = H(row[0]);
         const distKm = parseFloat(row[3]) || 0;
-        const geoJsonStr = row[10]; // कॉलम K में सेव घुमावदार रास्ता
+        const geoJsonStr = row[10];
 
         let segmentDrawn = false;
         if (geoJsonStr && geoJsonStr.startsWith("[")) {
@@ -473,7 +521,6 @@
           } catch (e) {}
         }
 
-        // यदि पुराने डेटा में Route Geometry सेव नहीं थी, तो पिछले बिंदु से जोड़ें
         if (!segmentDrawn && rIdx > 0) {
           const prevLat = parseFloat(rows[rIdx - 1][4]);
           const prevLng = parseFloat(rows[rIdx - 1][5]);
@@ -511,7 +558,148 @@
     }
   }
 
-  map.on('click', e => selectPoint(e.latlng.lat, e.latlng.lng));
+  // कस्टम पिन-दर-पिन / फ्री-हैंड रूट जोड़ने का टॉगल
+  function toggleCustomPinMode() {
+    if (!tripState || !tripState.active) {
+      Swal.fire({ icon: 'info', title: H('पहले यात्रा शुरू करें'), text: H('कस्टम रास्ता खींचने के लिए पहले आज की यात्रा शुरू करें।') });
+      return;
+    }
+    isCustomPinMode = !isCustomPinMode;
+    const btn = document.getElementById('customDrawToggleBtn');
+    const undoBtn = document.getElementById('undoPinBtn');
+
+    if (isCustomPinMode) {
+      btn.className = "btn btn-warning btn-sm py-0 px-2 fw-bold text-dark";
+      btn.innerText = H("✏️ कस्टम पिन/ड्रैग: ON");
+      undoBtn.style.display = "inline-block";
+
+      // यदि पहले से कोई रास्ता स्क्रीन पर है, तो उसके मुख्य बिंदुओं को एडिटेबल बना दें
+      if (candidateRoutes.length > 0 && candidateRoutes[selectedCandidateIndex]) {
+        const activeCoords = candidateRoutes[selectedCandidateIndex].coords;
+        const prev = tripState.points[tripState.points.length - 1];
+        const mid = activeCoords[Math.floor(activeCoords.length / 2)];
+        customWaypoints = [
+          { lat: prev.lat, lng: prev.lng },
+          { lat: mid[0], lng: mid[1] },
+          { lat: selectedLat, lng: selectedLng }
+        ];
+      } else {
+        const prev = tripState.points[tripState.points.length - 1];
+        customWaypoints = [{ lat: prev.lat, lng: prev.lng }];
+      }
+      renderCustomWaypointEditor();
+      Swal.fire({ toast: true, position: 'top', icon: 'success', title: H('नक्शे पर टैप करके पिन जोड़ें या बिंदुओं को खींचें'), showConfirmButton: false, timer: 2000 });
+    } else {
+      btn.className = "btn btn-outline-warning btn-sm py-0 px-2 fw-bold text-dark";
+      btn.innerText = H("✏️ कस्टम पिन/ड्रैग: OFF");
+      undoBtn.style.display = "none";
+      customWaypoints = [];
+      customDragGroup.clearLayers();
+    }
+  }
+
+  function undoLastCustomPin() {
+    if (customWaypoints.length > 2) {
+      customWaypoints.pop();
+      const last = customWaypoints[customWaypoints.length - 1];
+      selectedLat = last.lat; selectedLng = last.lng;
+      renderCustomWaypointEditor();
+    }
+  }
+
+  // नक्शे पर क्लिक करने का व्यवहार (ऑटो रूट या कस्टम पिन-दर-पिन विस्तार)
+  map.on('click', e => {
+    if (isCustomPinMode && tripState && tripState.active) {
+      // कस्टम पिन मोड में: नया बिंदु जोड़ते जाएं ताकि थोड़ा-थोड़ा रास्ता आगे बढ़ता जाए
+      customWaypoints.push({ lat: e.latlng.lat, lng: e.latlng.lng });
+      selectedLat = e.latlng.lat;
+      selectedLng = e.latlng.lng;
+      fetchReverseNameOnly(selectedLat, selectedLng);
+      renderCustomWaypointEditor();
+    } else {
+      selectPoint(e.latlng.lat, e.latlng.lng);
+    }
+  });
+
+  function fetchReverseNameOnly(lat, lng) {
+    document.getElementById('coordsText').innerText = lat.toFixed(5) + ", " + lng.toFixed(5);
+    document.getElementById('saveBtn').disabled = false;
+    fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&zoom=18&accept-language=hi`)
+      .then(r => r.json())
+      .then(d => {
+        document.getElementById('placeName').value = (d && d.display_name) ? (d.name ? d.name + ", " + d.display_name : d.display_name) : "";
+      })
+      .catch(() => {});
+  }
+
+  // कस्टम ड्रैग हैंडल और पिन-दर-पिन रेखा बनाने वाला फ़ंक्शन
+  function renderCustomWaypointEditor() {
+    customDragGroup.clearLayers();
+    previewRoutesGroup.clearLayers();
+    if (customWaypoints.length < 2) return;
+
+    let coords = customWaypoints.map(w => [w.lat, w.lng]);
+    let totalMeters = 0;
+    for (let i = 1; i < coords.length; i++) {
+      totalMeters += getDistanceMeters(coords[i-1][0], coords[i-1][1], coords[i][0], coords[i][1]);
+    }
+
+    // कस्टम खींची गई लाइन दिखाएं
+    L.polyline(coords, { color: '#198754', weight: 6, opacity: 0.95 }).addTo(customDragGroup);
+
+    // प्रत्येक बिंदु (पहले बिंदु को छोड़कर) पर खींचने योग्य (Draggable) गोल हैंडल लगाएं
+    customWaypoints.forEach((wp, idx) => {
+      if (idx === 0) return;
+      const isLast = idx === customWaypoints.length - 1;
+      const handleIcon = L.divIcon({
+        className: isLast ? 'drag-handle-icon' : 'drag-handle-mid',
+        iconSize: isLast ? [18, 18] : [15, 15],
+        iconAnchor: isLast ? [9, 9] : [7.5, 7.5]
+      });
+
+      const dragPin = L.marker([wp.lat, wp.lng], { icon: handleIcon, draggable: true }).addTo(customDragGroup);
+      dragPin.bindTooltip(isLast ? H("मंजिल (खींचें)") : H(`मोड़ ${idx} (खींचें)`), { direction: 'top' });
+
+      dragPin.on('drag', ev => {
+        const pos = ev.target.getLatLng();
+        customWaypoints[idx] = { lat: pos.lat, lng: pos.lng };
+        if (isLast) { selectedLat = pos.lat; selectedLng = pos.lng; }
+        // ड्रैग करते समय लाइव लाइन अपडेट करें
+        const liveCoords = customWaypoints.map(w => [w.lat, w.lng]);
+        customDragGroup.eachLayer(layer => {
+          if (layer instanceof L.Polyline) layer.setLatLngs(liveCoords);
+        });
+      });
+
+      dragPin.on('dragend', ev => {
+        const pos = ev.target.getLatLng();
+        customWaypoints[idx] = { lat: pos.lat, lng: pos.lng };
+        if (isLast) {
+          selectedLat = pos.lat; selectedLng = pos.lng;
+          fetchReverseNameOnly(selectedLat, selectedLng);
+        }
+        renderCustomWaypointEditor();
+      });
+    });
+
+    const totalKm = totalMeters / 1000;
+    candidateRoutes = [{
+      coords: coords,
+      km: totalKm,
+      mins: Math.max(1, Math.round((totalKm / 14) * 60)),
+      type: H("कस्टम पिन मार्ग"),
+      index: 0,
+      isGraph: true
+    }];
+    selectedCandidateIndex = 0;
+
+    const strip = document.getElementById('routesCountStrip');
+    strip.style.display = 'flex';
+    document.getElementById('routesCountLabel').innerText = H(`✏️ कस्टम पिन मार्ग (${customWaypoints.length - 1} खंड): ${totalKm.toFixed(2)} km`);
+    document.getElementById('routesAccessBadge').className = "badge bg-warning text-dark";
+    document.getElementById('routesAccessBadge').innerText = H("ड्रैग व पिन मोड");
+    document.getElementById('routeOptionsContainer').style.display = 'none';
+  }
 
   function applyTag(tagText) {
     const box = document.getElementById('customTitle');
@@ -533,7 +721,8 @@
   }
 
   function selectPoint(lat, lng) {
-    setPinOnly(lat, lng, H("स्थान का पता व सड़क/गली ग्राफ खोजा जा रहा है..."), "");
+    customDragGroup.clearLayers();
+    setPinOnly(lat, lng, H("स्थान का पता व रास्ता खोजा जा रहा है..."), "");
     
     fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&zoom=18&accept-language=hi`)
       .then(r => r.json())
@@ -577,7 +766,6 @@
     return { coords: coords, extraKm: extraMeters / 1000 };
   }
 
-  // मुख्य ग्राफ इंजन: Valhalla (Pedestrian/Bicycle Graph) + OSRM Main (तीनों उच्च-उपलब्धता सर्वर)
   async function buildCurvedRoadGraph(startLat, startLng, endLat, endLng) {
     previewRoutesGroup.clearLayers();
     candidateRoutes = [];
@@ -589,14 +777,13 @@
     const container = document.getElementById('routeOptionsContainer');
 
     strip.style.display = 'flex';
-    countLabel.innerText = H("🔄 सड़क व पगडंडी का घुमावदार ग्राफ बन रहा है...");
+    countLabel.innerText = H("🔄 सड़क व पगडंडी का रास्ता बन रहा है...");
     accessBadge.className = "badge bg-secondary";
     accessBadge.innerText = H("लोडिंग");
     container.style.display = 'none';
 
     let foundRoutes = [];
 
-    // इंजन 1: FOSSGIS Valhalla Bicycle & Pedestrian Graph (सबसे विश्वसनीय घुमावदार सड़क व गली ग्राफ)
     const fetchValhalla = async (costingMode, label) => {
       try {
         const reqBody = {
@@ -612,7 +799,6 @@
         });
         const data = await resp.json();
         if (data && data.trip && data.trip.legs) {
-          // मुख्य ट्रिप
           const shape1 = decodePolyline(data.trip.legs[0].shape, 6);
           const conn1 = connectExactPins(shape1, startLat, startLng, endLat, endLng);
           foundRoutes.push({
@@ -622,7 +808,6 @@
             type: label,
             isGraph: true
           });
-          // वैकल्पिक रास्ते (Alternates)
           if (data.alternates) {
             data.alternates.forEach(alt => {
               if (alt.trip && alt.trip.legs) {
@@ -642,7 +827,6 @@
       } catch (e) {}
     };
 
-    // इंजन 2: OSRM Official Main Server (उच्च गति वाला बैकअप ग्राफ इंजन)
     const fetchOsrmMain = async () => {
       try {
         const url = `https://router.project-osrm.org/route/v1/driving/${startLng},${startLat};${endLng},${endLat}?overview=full&geometries=geojson&alternatives=3`;
@@ -663,19 +847,17 @@
       } catch (e) {}
     };
 
-    // तीनों को समानांतर (Parallel) चलाएं ताकि 1.5 सेकंड के अंदर ग्राफ मिल जाए
     await Promise.allSettled([
       fetchValhalla("bicycle", H("साइकिल व गली मार्ग")),
       fetchValhalla("pedestrian", H("पैदल पगडंडी")),
       fetchOsrmMain()
     ]);
 
-    // डुप्लीकेट रास्तों को फ़िल्टर करें (ताकि अलग-अलग रास्ते ही दिखें)
     let uniqueRoutes = [];
     foundRoutes.sort((a, b) => a.km - b.km);
 
     foundRoutes.forEach(rt => {
-      if (rt.coords.length <= 2) return; // सीधी 2-बिंदु रेखा को अनदेखा करें यदि असली ग्राफ उपलब्ध है
+      if (rt.coords.length <= 2) return;
       const midIdx = Math.floor(rt.coords.length / 2);
       const midPt = rt.coords[midIdx];
       const isDup = uniqueRoutes.some(ex => {
@@ -707,6 +889,7 @@
 
   function renderGraphRoutes() {
     previewRoutesGroup.clearLayers();
+    customDragGroup.clearLayers();
     const strip = document.getElementById('routesCountStrip');
     const countLabel = document.getElementById('routesCountLabel');
     const accessBadge = document.getElementById('routesAccessBadge');
@@ -717,11 +900,11 @@
 
     strip.style.display = 'flex';
     countLabel.innerText = isRealGraph 
-      ? H(`🛣️ इस स्थान तक पहुँचने के कुल ${totalRoutes} मार्ग उपलब्ध हैं`)
-      : H(`⚠️ इस क्षेत्र में सड़क डेटा उपलब्ध नहीं - सीधा मार्ग`);
+      ? H(`🛣️ कुल ${totalRoutes} मार्ग उपलब्ध (बीच का बिंदु खींचकर बदल सकते हैं)`)
+      : H(`⚠️ सीधा मार्ग (ऊपर ✏️ कस्टम पिन से मोड़ जोड़ें)`);
     
     accessBadge.className = isRealGraph ? "badge bg-success" : "badge bg-warning text-dark";
-    accessBadge.innerText = isRealGraph ? H("✅ सड़क/गली ग्राफ") : H("सीधी दूरी");
+    accessBadge.innerText = isRealGraph ? H("✅ ऑटो ग्राफ") : H("कस्टम योग्य");
 
     container.style.display = 'flex';
     container.innerHTML = '';
@@ -741,15 +924,79 @@
       const chip = document.createElement('div');
       chip.className = `route-chip ${isSel ? 'selected' : ''}`;
       const badgeTxt = idx === 0 ? H("⭐ सबसे छोटा") : rt.type;
-      chip.innerHTML = H(`मार्ग ${idx + 1} (${badgeTxt}): <b>${rt.km.toFixed(2)} km</b> • ${rt.mins} मि.`);
+      chip.innerHTML = H(`मार्ग ${idx + 1} (${badgeTxt}): <b>${rt.km.toFixed(2)} km</b>`);
       chip.onclick = () => { selectedCandidateIndex = idx; renderGraphRoutes(); };
       container.appendChild(chip);
     });
 
     const activeRt = candidateRoutes[selectedCandidateIndex];
     if (activeRt) {
-      L.polyline(activeRt.coords, { color: '#198754', weight: 7, opacity: 0.95 }).addTo(previewRoutesGroup);
+      L.polyline(activeRt.coords, { color: '#198754', weight: 6.5, opacity: 0.95 }).addTo(previewRoutesGroup);
+
+      // ऑटो रास्ते के बीच में भी एक ड्रैग हैंडल दें ताकि यूज़र लाइन को पकड़कर अपनी मनचाही गली पर खींच सके
+      if (activeRt.coords.length >= 2) {
+        const midPt = activeRt.coords[Math.floor(activeRt.coords.length / 2)];
+        const midIcon = L.divIcon({ className: 'drag-handle-icon', iconSize: [16, 16], iconAnchor: [8, 8] });
+        const midMarker = L.marker(midPt, { icon: midIcon, draggable: true }).addTo(customDragGroup);
+        midMarker.bindTooltip(H("रास्ता बदलने के लिए इस बिंदु को खींचें"), { direction: 'top' });
+
+        midMarker.on('dragend', async ev => {
+          const newMid = ev.target.getLatLng();
+          const prev = tripState.points[tripState.points.length - 1];
+          // खींचे गए नए बिंदु से होकर नया सड़क/गली रास्ता बनाएं
+          await buildDraggedViaRoute(prev.lat, prev.lng, newMid.lat, newMid.lng, selectedLat, selectedLng);
+        });
+      }
     }
+  }
+
+  // जब यूज़र लाइन के बीच वाले बिंदु को पकड़कर दूसरी गली में खींचे
+  async function buildDraggedViaRoute(lat1, lng1, viaLat, viaLng, lat2, lng2) {
+    try {
+      const reqBody = {
+        locations: [{ lat: lat1, lon: lng1 }, { lat: viaLat, lon: viaLng }, { lat: lat2, lon: lng2 }],
+        costing: "bicycle",
+        units: "kilometers"
+      };
+      const resp = await fetch("https://valhalla1.openstreetmap.de/route", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(reqBody)
+      });
+      const data = await resp.json();
+      if (data && data.trip && data.trip.legs) {
+        let fullCoords = [];
+        let totalKm = 0;
+        data.trip.legs.forEach(leg => {
+          fullCoords.push(...decodePolyline(leg.shape, 6));
+          totalKm += leg.summary.length;
+        });
+        const conn = connectExactPins(fullCoords, lat1, lng1, lat2, lng2);
+        candidateRoutes[selectedCandidateIndex] = {
+          coords: conn.coords,
+          km: totalKm + conn.extraKm,
+          mins: Math.max(1, Math.round(((totalKm + conn.extraKm) / 14) * 60)),
+          type: H("कस्टम खींचा गया मार्ग"),
+          index: selectedCandidateIndex,
+          isGraph: true
+        };
+        renderGraphRoutes();
+        return;
+      }
+    } catch (e) {}
+
+    // फ़ॉलबैक: सीधे खींचे गए बिंदु से जोड़ें
+    const directCoords = [[lat1, lng1], [viaLat, viaLng], [lat2, lng2]];
+    const dKm = (getDistanceMeters(lat1, lng1, viaLat, viaLng) + getDistanceMeters(viaLat, viaLng, lat2, lng2)) / 1000;
+    candidateRoutes[selectedCandidateIndex] = {
+      coords: directCoords,
+      km: dKm,
+      mins: Math.max(1, Math.round((dKm / 14) * 60)),
+      type: H("कस्टम खींचा गया मार्ग"),
+      index: selectedCandidateIndex,
+      isGraph: true
+    };
+    renderGraphRoutes();
   }
 
   function getDistanceMeters(lat1, lon1, lat2, lon2) {
@@ -796,8 +1043,8 @@
   }
 
   function handleTripButton() {
-    if (!marker) {
-      Swal.fire({ icon: 'info', title: H('पहले स्थान चुनें'), text: H('कृपया नक्शे पर उस स्थान पर टैप करें जहाँ से साइकिल यात्रा शुरू करनी है।') });
+    if (!marker && (!tripState || !tripState.active)) {
+      Swal.fire({ icon: 'info', title: H('पहले स्थान चुनें'), text: H('कृपया नक्शे पर उस स्थान पर टैप करें जहाँ से यात्रा शुरू करनी है।') });
       return;
     }
 
@@ -878,6 +1125,7 @@
     };
     localStorage.setItem('custom_trip_state', JSON.stringify(tripState));
     previewRoutesGroup.clearLayers();
+    customDragGroup.clearLayers();
     document.getElementById('routeOptionsContainer').style.display = 'none';
     document.getElementById('routesCountStrip').style.display = 'none';
     setPinOnly(lat, lng, mapAddr, customTitle);
@@ -906,8 +1154,8 @@
 
     for (let p of tripState.points) {
       const distM = getDistanceMeters(selectedLat, selectedLng, p.lat, p.lng);
-      if (distM < 100) {
-        Swal.fire({ icon: 'warning', title: H('डुप्लीकेट स्थान!'), text: H(`यह स्थान पहले से सेव है - ${Math.round(distM)}m के दायरे में। कृपया 100m से दूर अगला स्थान चुनें।`) });
+      if (distM < 80) {
+        Swal.fire({ icon: 'warning', title: H('डुप्लीकेट स्थान!'), text: H(`यह स्थान पहले से सेव है - ${Math.round(distM)}m के दायरे में।`) });
         return;
       }
     }
@@ -926,8 +1174,12 @@
       routeCoords: routeCoords
     });
 
+    // सेव होने के बाद कस्टम ड्रैग मोड रीसेट करें
+    if (isCustomPinMode) toggleCustomPinMode();
+
     localStorage.setItem('custom_trip_state', JSON.stringify(tripState));
     previewRoutesGroup.clearLayers();
+    customDragGroup.clearLayers();
     document.getElementById('routeOptionsContainer').style.display = 'none';
     document.getElementById('routesCountStrip').style.display = 'none';
     document.getElementById('customTitle').value = "";
@@ -954,13 +1206,14 @@
     let finalSegKm = 0;
     let routeCoords = [];
 
-    if (distM >= 100) {
+    if (distM >= 80) {
       let chosenRoute = candidateRoutes[selectedCandidateIndex];
       finalSegKm = chosenRoute ? chosenRoute.km : (distM / 1000);
       routeCoords = chosenRoute ? chosenRoute.coords : [[prevPoint.lat, prevPoint.lng], [selectedLat, selectedLng]];
       tripState.totalKm += finalSegKm;
       tripState.points.push({ lat: selectedLat, lng: selectedLng, name: names.mapAddr, customTitle: names.customTitle, segKm: finalSegKm, routeCoords: routeCoords });
       previewRoutesGroup.clearLayers();
+      customDragGroup.clearLayers();
       document.getElementById('routeOptionsContainer').style.display = 'none';
       document.getElementById('routesCountStrip').style.display = 'none';
       redrawSavedTripRoute();
@@ -1175,19 +1428,25 @@
     document.getElementById('allStopsList').innerHTML = stopsHtml || `<div class="text-center text-muted small p-3 bg-white rounded">${H("अभी तक कोई पड़ाव सेव नहीं है")}</div>`;
   }
 
+  // 4 लेटेस्ट मैप लेयर्स टॉगल
   function toggleLayer() {
     const btn = document.getElementById('layerBtn');
+    map.removeLayer(voyagerLatestLayer);
     map.removeLayer(cycleLayer);
     map.removeLayer(streetLayer);
     map.removeLayer(satelliteLayer);
     map.removeLayer(labelsLayer);
 
-    mapMode = (mapMode + 1) % 3;
+    mapMode = (mapMode + 1) % 4;
     if (mapMode === 0) {
-      streetLayer.addTo(map);
+      voyagerLatestLayer.addTo(map);
       btn.classList.remove('active-layer');
-      Swal.fire({ toast: true, position: 'top', icon: 'info', title: H('🗺️ गली व मोहल्ला मैप (OSM)'), showConfirmButton: false, timer: 1200 });
+      Swal.fire({ toast: true, position: 'top', icon: 'info', title: H('✨ लेटेस्ट HD वेक्टर मैप (Voyager)'), showConfirmButton: false, timer: 1200 });
     } else if (mapMode === 1) {
+      streetLayer.addTo(map);
+      btn.classList.add('active-layer');
+      Swal.fire({ toast: true, position: 'top', icon: 'info', title: H('🗺️ विस्तृत गली मैप (OSM)'), showConfirmButton: false, timer: 1200 });
+    } else if (mapMode === 2) {
       cycleLayer.addTo(map);
       btn.classList.add('active-layer');
       Swal.fire({ toast: true, position: 'top', icon: 'info', title: H('🚲 साइकिल व पगडंडी मैप'), showConfirmButton: false, timer: 1200 });
@@ -1195,7 +1454,7 @@
       satelliteLayer.addTo(map);
       labelsLayer.addTo(map);
       btn.classList.add('active-layer');
-      Swal.fire({ toast: true, position: 'top', icon: 'info', title: H('🛰️ सैटेलाइट व्यू'), showConfirmButton: false, timer: 1200 });
+      Swal.fire({ toast: true, position: 'top', icon: 'info', title: H('🛰️ HD सैटेलाइट व्यू'), showConfirmButton: false, timer: 1200 });
     }
   }
 
@@ -1225,3 +1484,5 @@
   }
 // ]]>
 </script>
+</body>
+</html>
